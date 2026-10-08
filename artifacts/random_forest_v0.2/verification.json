@@ -1,0 +1,10 @@
+{
+  "all_rows_evaluated_once": true,
+  "artifact_roundtrip": true,
+  "feature_order_matches": true,
+  "input_sha256_matches": true,
+  "model_sha256_matches": true,
+  "no_outer_domain_overlap": true,
+  "selected_policy_met": true,
+  "source_sha256_matches": true
+}

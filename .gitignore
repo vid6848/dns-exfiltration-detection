@@ -27,3 +27,4 @@ htmlcov/
 .training-repeat/
 .pytest-work-temp/
 artifacts/random_forest_repeat/
+.public-data-research/
