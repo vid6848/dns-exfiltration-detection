@@ -2,6 +2,12 @@
 
 ## Implemented Random Forest training
 
+The latest workflow adds nested domain-group validation, balanced domain
+coverage per fold, and conservative threshold selection under explicit
+false-positive targets. Run `python -m src.ml.robust_train`; see the
+[v0.2 validation workflow](docs/robust_random_forest.md). The original v0.1
+experiment remains available below for reproducibility and comparison.
+
 The offline training stage now provides domain-disjoint train/validation/test
 splits, the exact ten-feature input contract, validation-selected Random Forest
 training, and a saved inference bundle with its feature order and decision
