@@ -1,5 +1,34 @@
 # DNS Exfiltration Detection Using Network Traffic Analysis
 
+## Implemented Random Forest training
+
+The latest workflow adds nested domain-group validation, balanced domain
+coverage per fold, and conservative threshold selection under explicit
+false-positive targets. Run `python -m src.ml.robust_train`; see the
+[v0.2 validation workflow](docs/robust_random_forest.md). The original v0.1
+experiment remains available below for reproducibility and comparison.
+
+The latest [AWS benign expansion experiment](artifacts/aws_benign_expansion_v0.1/RESULTS.md)
+adds 85,604 real publisher-labelled university benign queries to development.
+With AWS entirely excluded from training and selection, AWS false positives
+fell from 36,193/36,255 (99.83%) to 0/36,255 in the frozen development diagnostic.
+Synthetic-attack recall fell from 99.74% to 90.53%; this tradeoff is recorded.
+The exact training subset, saved model and experiment evidence are included;
+see [reproduction and provenance](docs/aws_benign_expansion.md).
+
+These are development results on a previously inspected evaluation fold;
+independent final testing remains necessary. The [v0.2 results](artifacts/random_forest_v0.2/RESULTS.md)
+and [public dataset research](docs/public_benign_data_research.md) remain available.
+
+The offline training stage now provides domain-disjoint train/validation/test
+splits, the exact ten-feature input contract, validation-selected Random Forest
+training, and a saved inference bundle with its feature order and decision
+threshold. The statistical baseline is re-evaluated on the same splits.
+
+See [training and inference handoff](docs/random_forest_training.md) for setup,
+reproduction, leakage controls, and limitations. Committed model and experiment
+outputs are in [artifacts/random_forest_v0.1](artifacts/random_forest_v0.1).
+
 ## Project Overview
 
 **Project:** DNS Exfiltration Detection Using Network Traffic Analysis  

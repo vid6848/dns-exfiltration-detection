@@ -1,0 +1,27 @@
+{
+  "capture_bytes": 253103755,
+  "capture_sha256": "508668addd6528925586b22e948aa545cb718712907b7da6e17609d90d56c2bb",
+  "counts": {
+    "dns_query_packets": 89130,
+    "invalid_records": 942,
+    "non_query_packets": 110870,
+    "packet_limit_reached": 1,
+    "packets": 200000,
+    "unsupported_question_or_network": 49
+  },
+  "distinct_apex_domains": 3123,
+  "label_basis": "Publisher-labelled benign directory; no model-based labelling",
+  "license": "CC BY 4.0",
+  "limitations": [
+    "UDP single-question DNS only; no fragment/TCP reassembly",
+    "Capture prefix starts with fresh behavioral history",
+    "Publisher labels are not independently verified"
+  ],
+  "max_packets": 200000,
+  "output_sha256": "eb10aa8d9db17d3a70d61614f0ab74f30d4a29b8de5bda342e22e199de8021fe",
+  "publisher_file": "dns-exfiltration-dataset/01_original_pcap_files/benign/university_traffic/monday/20160425_075435.pcap",
+  "rows": 88139,
+  "selection": "First fixed number of packets in file order; no score-based selection",
+  "source_url": "https://www.kaggle.com/datasets/daumel/dns-tunneling-dataset",
+  "time_span_seconds": 711.1010491847992
+}

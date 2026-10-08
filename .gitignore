@@ -22,3 +22,9 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local repeatability verification runs; published artifacts remain tracked.
+.training-repeat/
+.pytest-work-temp/
+artifacts/random_forest_repeat/
+.public-data-research/

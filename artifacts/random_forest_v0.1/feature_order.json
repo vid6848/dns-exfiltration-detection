@@ -1,0 +1,21 @@
+{
+  "classes": [
+    0,
+    1
+  ],
+  "decision_threshold": 0.3,
+  "feature_order": [
+    "query_length",
+    "longest_label_length",
+    "number_of_labels",
+    "entropy",
+    "digit_ratio",
+    "special_char_ratio",
+    "subdomain_length",
+    "query_frequency",
+    "unique_subdomains",
+    "time_interval"
+  ],
+  "first_query_time_interval": -1.0,
+  "window_seconds": 60.0
+}
