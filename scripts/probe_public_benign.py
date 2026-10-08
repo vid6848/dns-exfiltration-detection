@@ -21,11 +21,16 @@ from src.preprocessing.pipeline import PreprocessingPipeline
 from src.preprocessing.validator import validate_raw_record
 
 
-def read_benign_capture(path):
+def read_benign_capture(path, max_packets=None):
+    if max_packets is not None and max_packets < 1:
+        raise ValueError('max_packets must be positive')
     pipeline = PreprocessingPipeline(check_duplicates=False)
     records, seen, counts = [], set(), Counter()
     with PcapReader(str(path)) as packets:
         for packet_number, packet in enumerate(packets, start=1):
+            if max_packets is not None and packet_number > max_packets:
+                counts['packet_limit_reached'] = 1
+                break
             counts['packets'] += 1
             if DNS not in packet or packet[DNS].qr != 0:
                 counts['non_query_packets'] += 1
@@ -63,6 +68,8 @@ def read_benign_capture(path):
                 continue
             seen.add(key)
             records.append(Example(packet_number, record))
+            if len(records) % 25000 == 0:
+                print(f'Read {packet_number:,} packets; accepted {len(records):,} queries', flush=True)
     if not records:
         raise ValueError('No supported valid DNS queries in capture')
     records.sort(key=lambda e: (e.record.epoch_time, e.row_id))
