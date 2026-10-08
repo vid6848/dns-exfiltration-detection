@@ -211,6 +211,27 @@ Suspicious
 
 The thresholds will be selected using the training/validation data rather than arbitrarily choosing values.
 
+### Implemented baseline workflow
+
+`src.baseline` implements this detector using four derived numerical inputs:
+`query_length`, `entropy`, `query_frequency`, and `unique_subdomains`. A query
+is suspicious when at least a configurable number of those values meet their
+selected thresholds; automatic selection requires at least two corroborating
+indicators. The raw `src_ip`, domain strings, and timestamps are used
+only to construct the behavioral features and are never baseline inputs.
+
+Threshold candidates are generated from the training partition only, then the
+best rule is selected by validation F1-score (lower false-positive rate breaks
+ties). For count features, a threshold of one is excluded because it represents
+only the current query rather than repeated behavior. The held-out test
+partition is evaluated only after selection. The evaluator uses a deterministic
+stratified 60%/20%/20% train/validation/test split (seed 42). To run a read-only
+evaluation on the cleaned project dataset:
+
+```powershell
+python -m src.baseline.evaluate_baseline --input data/processed/cleaned_unified_v0.1.csv
+```
+
 This baseline is important because the research question is not only:
 
 > "Can ML detect DNS exfiltration?"
