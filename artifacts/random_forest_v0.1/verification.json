@@ -1,0 +1,19 @@
+{
+  "checks": {
+    "random_forest.joblib": true,
+    "feature_order.json": true,
+    "split_manifest.csv": true,
+    "test_predictions.csv": true,
+    "validation_trials_identical": true,
+    "final_metrics_identical": true,
+    "source_checksums_match": true,
+    "input_checksum_matches": true
+  },
+  "full_dataset_runs": 2,
+  "pytest": {
+    "passed": 53,
+    "subtests_passed": 13
+  },
+  "model_sha256": "3ee90cb98ae44e05e840a1f4ae25081ee5389935f963cb8bee8815df525ad027",
+  "test_predictions_sha256": "989e6aa6aafbaf75473a2baf55178cbd3aefc81a30624c0ba3747a94a2fdd21e"
+}
