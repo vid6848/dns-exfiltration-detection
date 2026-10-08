@@ -1,5 +1,16 @@
 # DNS Exfiltration Detection Using Network Traffic Analysis
 
+## Implemented Random Forest training
+
+The offline training stage now provides domain-disjoint train/validation/test
+splits, the exact ten-feature input contract, validation-selected Random Forest
+training, and a saved inference bundle with its feature order and decision
+threshold. The statistical baseline is re-evaluated on the same splits.
+
+See [training and inference handoff](docs/random_forest_training.md) for setup,
+reproduction, leakage controls, and limitations. Committed model and experiment
+outputs are in [artifacts/random_forest_v0.1](artifacts/random_forest_v0.1).
+
 ## Project Overview
 
 **Project:** DNS Exfiltration Detection Using Network Traffic Analysis  

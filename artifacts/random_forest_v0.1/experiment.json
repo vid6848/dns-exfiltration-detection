@@ -1,0 +1,1109 @@
+{
+  "artifacts": {
+    "model_sha256": "3ee90cb98ae44e05e840a1f4ae25081ee5389935f963cb8bee8815df525ad027",
+    "roundtrip_predictions_identical": true
+  },
+  "baseline": {
+    "test": {
+      "accuracy": 0.04424059756257371,
+      "confusion_matrix": [
+        [
+          54,
+          36201
+        ],
+        [
+          266,
+          1634
+        ]
+      ],
+      "f1": 0.08224487227884736,
+      "false_positive_rate": 0.9985105502689284,
+      "fn": 266,
+      "fp": 36201,
+      "precision": 0.04318752477864411,
+      "recall": 0.86,
+      "tn": 54,
+      "tp": 1634
+    },
+    "thresholds": {
+      "entropy": 4.162294909570877,
+      "min_indicators": 2,
+      "query_frequency": 8.0,
+      "query_length": 43.0,
+      "unique_subdomains": 8.0
+    },
+    "validation": {
+      "false_negatives": 198,
+      "false_positives": 0,
+      "true_negatives": 15896,
+      "true_positives": 1702
+    }
+  },
+  "behavioral_window_seconds": 60.0,
+  "created_at_utc": "2026-10-08T17:01:15.842122+00:00",
+  "environment": {
+    "packages": {
+      "cloudpickle": "3.1.2",
+      "joblib": "1.6.0",
+      "narwhals": "2.26.0",
+      "numpy": "2.5.3",
+      "scikit-learn": "1.9.1",
+      "scipy": "1.18.1",
+      "threadpoolctl": "3.7.0"
+    },
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.14"
+  },
+  "feature_order": [
+    "query_length",
+    "longest_label_length",
+    "number_of_labels",
+    "entropy",
+    "digit_ratio",
+    "special_char_ratio",
+    "subdomain_length",
+    "query_frequency",
+    "unique_subdomains",
+    "time_interval"
+  ],
+  "input": {
+    "duplicate_rows_removed": [],
+    "path": "data/processed/cleaned_unified_v0.1.csv",
+    "rows_read": 109989,
+    "rows_used": 109989,
+    "sha256": "c0b26b31ccd6d959a059c56850a0f42bc227f7a1669642befb091c0fdf16c983"
+  },
+  "limitations": [
+    "Synthetic attacks, one capture environment, only ten attack apex domains.",
+    "Domain-disjoint evaluation is not a future-time or unseen-host holdout.",
+    "Apex grouping inherits the preprocessing module's fixed suffix list.",
+    "Groups can have shared generator profiles across domains; unknown campaign IDs cannot be isolated.",
+    "Class balance and row ratios are approximate because domains remain intact.",
+    "Original reported baseline used random row splits and is not directly comparable."
+  ],
+  "random_forest": {
+    "decision_threshold": 0.3,
+    "feature_importances": {
+      "digit_ratio": 0.23288737423571837,
+      "entropy": 0.30012173386521096,
+      "longest_label_length": 0.09181493872025676,
+      "number_of_labels": 0.021486540346912303,
+      "query_frequency": 0.011896043590125138,
+      "query_length": 0.0750953815667401,
+      "special_char_ratio": 0.012578134842357609,
+      "subdomain_length": 0.21147235444235887,
+      "time_interval": 0.020534075516885977,
+      "unique_subdomains": 0.022113422873433927
+    },
+    "parameters": {
+      "class_weight": "balanced_subsample",
+      "max_depth": 12,
+      "max_features": "sqrt",
+      "min_samples_leaf": 1,
+      "n_estimators": 150,
+      "n_jobs": 2,
+      "random_state": 42
+    },
+    "selected_candidate_id": 2,
+    "test": {
+      "accuracy": 0.05341370724675665,
+      "average_precision": 0.9819437250569574,
+      "confusion_matrix": [
+        [
+          138,
+          36117
+        ],
+        [
+          0,
+          1900
+        ]
+      ],
+      "f1": 0.09519753488488614,
+      "false_positive_rate": 0.9961936284650393,
+      "fn": 0,
+      "fp": 36117,
+      "precision": 0.049977641581397794,
+      "recall": 1.0,
+      "roc_auc": 0.9976208581030566,
+      "tn": 138,
+      "tp": 1900
+    },
+    "validation": {
+      "accuracy": 1.0,
+      "average_precision": 1.0,
+      "confusion_matrix": [
+        [
+          15896,
+          0
+        ],
+        [
+          0,
+          1900
+        ]
+      ],
+      "f1": 1.0,
+      "false_positive_rate": 0.0,
+      "fn": 0,
+      "fp": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "roc_auc": 1.0,
+      "tn": 15896,
+      "tp": 1900
+    }
+  },
+  "schema_version": 1,
+  "seed": 42,
+  "selection": {
+    "candidate_count": 8,
+    "objective": "validation F1; ties: lower FPR, higher recall, higher precision, first candidate",
+    "refit_on_validation": false,
+    "threshold_candidates": [
+      0.3,
+      0.5,
+      0.7
+    ],
+    "trials": [
+      {
+        "candidate_id": 1,
+        "decision_threshold": 0.3,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9994942683749157,
+          "average_precision": 0.9999997231374069,
+          "confusion_matrix": [
+            [
+              15887,
+              9
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 0.9976371751115779,
+          "false_positive_rate": 0.0005661801711122295,
+          "fn": 0,
+          "fp": 9,
+          "precision": 0.9952854897852279,
+          "recall": 1.0,
+          "roc_auc": 0.9999999668900483,
+          "tn": 15887,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 1,
+        "decision_threshold": 0.5,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9998314227916386,
+          "average_precision": 0.9999997231374069,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              3,
+              1897
+            ]
+          ],
+          "f1": 0.9992099025546484,
+          "false_positive_rate": 0.0,
+          "fn": 3,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.998421052631579,
+          "roc_auc": 0.9999999668900483,
+          "tn": 15896,
+          "tp": 1897
+        }
+      },
+      {
+        "candidate_id": 1,
+        "decision_threshold": 0.7,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9994942683749157,
+          "average_precision": 0.9999997231374069,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              9,
+              1891
+            ]
+          ],
+          "f1": 0.9976259562120813,
+          "false_positive_rate": 0.0,
+          "fn": 9,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9952631578947368,
+          "roc_auc": 0.9999999668900483,
+          "tn": 15896,
+          "tp": 1891
+        }
+      },
+      {
+        "candidate_id": 2,
+        "decision_threshold": 0.3,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 1.0,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "tn": 15896,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 2,
+        "decision_threshold": 0.5,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 1.0,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "tn": 15896,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 2,
+        "decision_threshold": 0.7,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9997190379860643,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              5,
+              1895
+            ]
+          ],
+          "f1": 0.9986824769433464,
+          "false_positive_rate": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9973684210526316,
+          "roc_auc": 1.0,
+          "tn": 15896,
+          "tp": 1895
+        }
+      },
+      {
+        "candidate_id": 3,
+        "decision_threshold": 0.3,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9997190379860643,
+          "average_precision": 0.9999994465659416,
+          "confusion_matrix": [
+            [
+              15891,
+              5
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 0.9986859395532194,
+          "false_positive_rate": 0.00031454453950679415,
+          "fn": 0,
+          "fp": 5,
+          "precision": 0.9973753280839895,
+          "recall": 1.0,
+          "roc_auc": 0.999999933780097,
+          "tn": 15891,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 3,
+        "decision_threshold": 0.5,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9997752303888514,
+          "average_precision": 0.9999994465659416,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              4,
+              1896
+            ]
+          ],
+          "f1": 0.9989462592202318,
+          "false_positive_rate": 0.0,
+          "fn": 4,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9978947368421053,
+          "roc_auc": 0.999999933780097,
+          "tn": 15896,
+          "tp": 1896
+        }
+      },
+      {
+        "candidate_id": 3,
+        "decision_threshold": 0.7,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.99921330636098,
+          "average_precision": 0.9999994465659416,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              14,
+              1886
+            ]
+          ],
+          "f1": 0.9963021658742736,
+          "false_positive_rate": 0.0,
+          "fn": 14,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9926315789473684,
+          "roc_auc": 0.999999933780097,
+          "tn": 15896,
+          "tp": 1886
+        }
+      },
+      {
+        "candidate_id": 4,
+        "decision_threshold": 0.3,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9999438075972129,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15895,
+              1
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 0.9997369113391212,
+          "false_positive_rate": 6.290890790135883e-05,
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.9994739610731194,
+          "recall": 1.0,
+          "roc_auc": 0.9999999999999999,
+          "tn": 15895,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 4,
+        "decision_threshold": 0.5,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9999438075972129,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              1,
+              1899
+            ]
+          ],
+          "f1": 0.9997367728349565,
+          "false_positive_rate": 0.0,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9994736842105263,
+          "roc_auc": 0.9999999999999999,
+          "tn": 15896,
+          "tp": 1899
+        }
+      },
+      {
+        "candidate_id": 4,
+        "decision_threshold": 0.7,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": 12,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9994942683749157,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              9,
+              1891
+            ]
+          ],
+          "f1": 0.9976259562120813,
+          "false_positive_rate": 0.0,
+          "fn": 9,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9952631578947368,
+          "roc_auc": 0.9999999999999999,
+          "tn": 15896,
+          "tp": 1891
+        }
+      },
+      {
+        "candidate_id": 5,
+        "decision_threshold": 0.3,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9983704203191729,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15867,
+              29
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 0.9924262209454165,
+          "false_positive_rate": 0.0018243583291394062,
+          "fn": 0,
+          "fp": 29,
+          "precision": 0.9849663037843442,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "tn": 15867,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 5,
+        "decision_threshold": 0.5,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9999438075972129,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              1,
+              1899
+            ]
+          ],
+          "f1": 0.9997367728349565,
+          "false_positive_rate": 0.0,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9994736842105263,
+          "roc_auc": 1.0,
+          "tn": 15896,
+          "tp": 1899
+        }
+      },
+      {
+        "candidate_id": 5,
+        "decision_threshold": 0.7,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9997190379860643,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              5,
+              1895
+            ]
+          ],
+          "f1": 0.9986824769433464,
+          "false_positive_rate": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9973684210526316,
+          "roc_auc": 1.0,
+          "tn": 15896,
+          "tp": 1895
+        }
+      },
+      {
+        "candidate_id": 6,
+        "decision_threshold": 0.3,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9999438075972129,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15895,
+              1
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 0.9997369113391212,
+          "false_positive_rate": 6.290890790135883e-05,
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.9994739610731194,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "tn": 15895,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 6,
+        "decision_threshold": 0.5,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 1.0,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 1.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "tn": 15896,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 6,
+        "decision_threshold": 0.7,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 1,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9997190379860643,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              5,
+              1895
+            ]
+          ],
+          "f1": 0.9986824769433464,
+          "false_positive_rate": 0.0,
+          "fn": 5,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9973684210526316,
+          "roc_auc": 1.0,
+          "tn": 15896,
+          "tp": 1895
+        }
+      },
+      {
+        "candidate_id": 7,
+        "decision_threshold": 0.3,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9992694987637671,
+          "average_precision": 0.9999997231374069,
+          "confusion_matrix": [
+            [
+              15883,
+              13
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 0.996590611067401,
+          "false_positive_rate": 0.0008178158027176649,
+          "fn": 0,
+          "fp": 13,
+          "precision": 0.9932043910088866,
+          "recall": 1.0,
+          "roc_auc": 0.9999999668900484,
+          "tn": 15883,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 7,
+        "decision_threshold": 0.5,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9998876151944257,
+          "average_precision": 0.9999997231374069,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              2,
+              1898
+            ]
+          ],
+          "f1": 0.9994734070563455,
+          "false_positive_rate": 0.0,
+          "fn": 2,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9989473684210526,
+          "roc_auc": 0.9999999668900484,
+          "tn": 15896,
+          "tp": 1898
+        }
+      },
+      {
+        "candidate_id": 7,
+        "decision_threshold": 0.7,
+        "parameters": {
+          "class_weight": null,
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9994380759721285,
+          "average_precision": 0.9999997231374069,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              10,
+              1890
+            ]
+          ],
+          "f1": 0.9973614775725593,
+          "false_positive_rate": 0.0,
+          "fn": 10,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9947368421052631,
+          "roc_auc": 0.9999999668900484,
+          "tn": 15896,
+          "tp": 1890
+        }
+      },
+      {
+        "candidate_id": 8,
+        "decision_threshold": 0.3,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9999438075972129,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15895,
+              1
+            ],
+            [
+              0,
+              1900
+            ]
+          ],
+          "f1": 0.9997369113391212,
+          "false_positive_rate": 6.290890790135883e-05,
+          "fn": 0,
+          "fp": 1,
+          "precision": 0.9994739610731194,
+          "recall": 1.0,
+          "roc_auc": 0.9999999999999999,
+          "tn": 15895,
+          "tp": 1900
+        }
+      },
+      {
+        "candidate_id": 8,
+        "decision_threshold": 0.5,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9999438075972129,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              1,
+              1899
+            ]
+          ],
+          "f1": 0.9997367728349565,
+          "false_positive_rate": 0.0,
+          "fn": 1,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9994736842105263,
+          "roc_auc": 0.9999999999999999,
+          "tn": 15896,
+          "tp": 1899
+        }
+      },
+      {
+        "candidate_id": 8,
+        "decision_threshold": 0.7,
+        "parameters": {
+          "class_weight": "balanced_subsample",
+          "max_depth": null,
+          "max_features": "sqrt",
+          "min_samples_leaf": 5,
+          "n_estimators": 150,
+          "n_jobs": 2,
+          "random_state": 42
+        },
+        "validation": {
+          "accuracy": 0.9994380759721285,
+          "average_precision": 1.0,
+          "confusion_matrix": [
+            [
+              15896,
+              0
+            ],
+            [
+              10,
+              1890
+            ]
+          ],
+          "f1": 0.9973614775725593,
+          "false_positive_rate": 0.0,
+          "fn": 10,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.9947368421052631,
+          "roc_auc": 0.9999999999999999,
+          "tn": 15896,
+          "tp": 1890
+        }
+      }
+    ]
+  },
+  "source": {
+    "file_sha256": {
+      "src/baseline/__init__.py": "2f56e69f99493f2b4059591ce1825d2b6c8281b4d15b1deb160d46ee6a42aeba",
+      "src/baseline/detector.py": "6385bb0f91138f792ce6dd67e083c7bfe75a314067f7a42c18d2fe03b07196f4",
+      "src/baseline/evaluate_baseline.py": "c8cbc8ca60b134568f208d84bda44b9930ef72e71dbbbd98e066dd1358fc1651",
+      "src/features/__init__.py": "77be5bab09e4653043f6a0d684d846ecdb4f3c66389851db86cfd14ceb6498d1",
+      "src/features/behavioral.py": "97d904eeaa14fbcd9672552f28324d7ed8ce35dfbda6565a388329c5b4be9a8c",
+      "src/features/generate_features_csv.py": "7a90b75d93ee0c49a528b67f10fabc56d8050154602d59b04b4b186d42387999",
+      "src/features/per_query.py": "bf921fc0c49b0c38bda451903adc168536f812082e458f0025d751d15cbae71f",
+      "src/ml/__init__.py": "d2948040a0500622175496d7adae72de748dadd9a48e30c359e689af50c4f1bf",
+      "src/ml/artifact.py": "8b482805d3ec80b72af472601701278212751c77debe060c9fdb7625a5aadc1e",
+      "src/ml/data.py": "102865385ceefac0f8a0baee2109af776a80201ee860a303c815e35863b0a2b3",
+      "src/ml/features.py": "4e1764e6d8bb663e5304b99d8ceff6ae8d57d1f1df92d7398618fa9e5d973e02",
+      "src/ml/train.py": "e221ead46e937571702b2e616f043b88faa7a88a5b06156323c45b71c1cae31d",
+      "src/preprocessing/__init__.py": "622387649b83562f3a0f75c6ff12e0706331519533058ae936a813065282aa70",
+      "src/preprocessing/normalizer.py": "4686b3c3384d788ee51273915105cc0446d26d4cb7638ee3e3c16f98807a9fcd",
+      "src/preprocessing/parser.py": "c8eaf6e794d683ecef1007ce665be955fe9706dd28531595364750342087d6d6",
+      "src/preprocessing/pipeline.py": "d62e5e431c98aa93b167341c3cda23d578a7a328a8da1dec1dd1f6e05bd5d514",
+      "src/preprocessing/schema.py": "1427a07a283375ae44c4e6a9adf42e186de09df49929a78b2b8987c88c26a692",
+      "src/preprocessing/timestamps.py": "7a8a88cd59ea50d06e7310f2ce5f9d812aaeaf6ea58cb776a0d0b59aca44614d",
+      "src/preprocessing/validator.py": "237868a2df801fb20b210ef4d6fb13746c9bd8a4a722295b16c36d4c1576ba3c"
+    },
+    "git_head_at_run": "98567275f09bf3566934fa9d7f772e7ecb2ef6d8"
+  },
+  "split": {
+    "group_overlap": 0,
+    "independently_recomputed_features": true,
+    "method": "StratifiedGroupKFold(5), apex_domain across all clients; test fold 0, validation fold 1",
+    "requested_ratios": {
+      "test": 0.2,
+      "train": 0.6,
+      "validation": 0.2
+    },
+    "summary": {
+      "test": {
+        "apex_domains": 3,
+        "attack": 1900,
+        "attack_apex_domains": [
+          "cloud-telemetry.io",
+          "srv-heartbeat.co"
+        ],
+        "benign": 36255,
+        "earliest_epoch": 1749807086.159,
+        "latest_epoch": 1749891666.625,
+        "rows": 38155
+      },
+      "train": {
+        "apex_domains": 1161,
+        "attack": 6200,
+        "attack_apex_domains": [
+          "data-relay.info",
+          "edge-cdn-beacon.live",
+          "exfil-corp.org",
+          "internal-monitor.cc",
+          "ns-update-check.com",
+          "tunnel-sync.net"
+        ],
+        "benign": 47838,
+        "earliest_epoch": 1749807085.666,
+        "latest_epoch": 1749891666.636,
+        "rows": 54038
+      },
+      "validation": {
+        "apex_domains": 378,
+        "attack": 1900,
+        "attack_apex_domains": [
+          "sec-agent-update.xyz",
+          "system-metrics.biz"
+        ],
+        "benign": 15896,
+        "earliest_epoch": 1749807086.686,
+        "latest_epoch": 1749891661.006,
+        "rows": 17796
+      }
+    }
+  }
+}
