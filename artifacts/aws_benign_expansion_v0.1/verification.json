@@ -1,0 +1,19 @@
+{
+  "all_evaluation_domains_excluded": true,
+  "augmented_metrics_match": true,
+  "aws_excluded_from_training": true,
+  "aws_metrics_match": true,
+  "baseline_metrics_match": true,
+  "feature_order_exact": true,
+  "input_hash_matches": true,
+  "marked_development_only": true,
+  "model_hash_matches": true,
+  "prediction_threshold_matches": true,
+  "public_archive_content_matches": true,
+  "public_input_hashes_match": true,
+  "roundtrip_identical": true,
+  "source_hashes_match": true,
+  "threshold_matches": true,
+  "unique_complete_evaluation_rows": true,
+  "validation_policy_met": true
+}

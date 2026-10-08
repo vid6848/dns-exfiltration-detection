@@ -8,12 +8,17 @@ false-positive targets. Run `python -m src.ml.robust_train`; see the
 [v0.2 validation workflow](docs/robust_random_forest.md). The original v0.1
 experiment remains available below for reproducibility and comparison.
 
-The [v0.2 results](artifacts/random_forest_v0.2/RESULTS.md) still show a 99.83%
-false-positive rate when the AWS apex is entirely unseen. The model is a
-development artifact, not ready for deployment. A separate public benign probe
-had 6 false positives in 15,000 queries; see [public dataset research and probe
-instructions](docs/public_benign_data_research.md). Broader cloud/CDN benign
-coverage remains necessary.
+The latest [AWS benign expansion experiment](artifacts/aws_benign_expansion_v0.1/RESULTS.md)
+adds 85,604 real publisher-labelled university benign queries to development.
+With AWS entirely excluded from training and selection, AWS false positives
+fell from 36,193/36,255 (99.83%) to 0/36,255 in the frozen development diagnostic.
+Synthetic-attack recall fell from 99.74% to 90.53%; this tradeoff is recorded.
+The exact training subset, saved model and experiment evidence are included;
+see [reproduction and provenance](docs/aws_benign_expansion.md).
+
+These are development results on a previously inspected evaluation fold;
+independent final testing remains necessary. The [v0.2 results](artifacts/random_forest_v0.2/RESULTS.md)
+and [public dataset research](docs/public_benign_data_research.md) remain available.
 
 The offline training stage now provides domain-disjoint train/validation/test
 splits, the exact ten-feature input contract, validation-selected Random Forest
