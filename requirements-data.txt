@@ -1,0 +1,2 @@
+# Optional reader for the public benign PCAP probe.
+scapy==2.8.0

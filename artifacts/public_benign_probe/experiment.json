@@ -1,0 +1,156 @@
+{
+  "all_queries": {
+    "false_positive_rate": 0.0004,
+    "false_positives": 6,
+    "queries": 15000
+  },
+  "development_sha256": "c0b26b31ccd6d959a059c56850a0f42bc227f7a1669642befb091c0fdf16c983",
+  "distinct_apex_domains": 13603,
+  "false_positive_examples": [
+    {
+      "domain": "d38psrni17bvxu.cloudfront.net",
+      "features": {
+        "digit_ratio": 0.13793103448275862,
+        "entropy": 4.28022625367366,
+        "longest_label_length": 14,
+        "number_of_labels": 3,
+        "query_frequency": 1,
+        "query_length": 29,
+        "special_char_ratio": 0.06896551724137931,
+        "subdomain_length": 14,
+        "time_interval": -1.0,
+        "unique_subdomains": 1
+      },
+      "probability": 0.9733072028472676
+    },
+    {
+      "domain": "pl14492706.effectivecpmcontent.com",
+      "features": {
+        "digit_ratio": 0.23529411764705882,
+        "entropy": 4.065260267657297,
+        "longest_label_length": 19,
+        "number_of_labels": 3,
+        "query_frequency": 1,
+        "query_length": 34,
+        "special_char_ratio": 0.058823529411764705,
+        "subdomain_length": 10,
+        "time_interval": -1.0,
+        "unique_subdomains": 1
+      },
+      "probability": 0.9483660686567846
+    },
+    {
+      "domain": "d38psrni17bvxu.cloudfront.net",
+      "features": {
+        "digit_ratio": 0.13793103448275862,
+        "entropy": 4.28022625367366,
+        "longest_label_length": 14,
+        "number_of_labels": 3,
+        "query_frequency": 1,
+        "query_length": 29,
+        "special_char_ratio": 0.06896551724137931,
+        "subdomain_length": 14,
+        "time_interval": 108.59072089195251,
+        "unique_subdomains": 1
+      },
+      "probability": 0.9750454737367474
+    },
+    {
+      "domain": "d38psrni17bvxu.cloudfront.net",
+      "features": {
+        "digit_ratio": 0.13793103448275862,
+        "entropy": 4.28022625367366,
+        "longest_label_length": 14,
+        "number_of_labels": 3,
+        "query_frequency": 1,
+        "query_length": 29,
+        "special_char_ratio": 0.06896551724137931,
+        "subdomain_length": 14,
+        "time_interval": 207.55917882919312,
+        "unique_subdomains": 1
+      },
+      "probability": 0.9747315040865123
+    },
+    {
+      "domain": "d38psrni17bvxu.cloudfront.net",
+      "features": {
+        "digit_ratio": 0.13793103448275862,
+        "entropy": 4.28022625367366,
+        "longest_label_length": 14,
+        "number_of_labels": 3,
+        "query_frequency": 1,
+        "query_length": 29,
+        "special_char_ratio": 0.06896551724137931,
+        "subdomain_length": 14,
+        "time_interval": 119.12402009963989,
+        "unique_subdomains": 1
+      },
+      "probability": 0.9747315040865123
+    },
+    {
+      "domain": "mktdplp102cdn.azureedge.net",
+      "features": {
+        "digit_ratio": 0.1111111111111111,
+        "entropy": 3.986187965046304,
+        "longest_label_length": 13,
+        "number_of_labels": 3,
+        "query_frequency": 1,
+        "query_length": 27,
+        "special_char_ratio": 0.07407407407407407,
+        "subdomain_length": 13,
+        "time_interval": 214.5185990333557,
+        "unique_subdomains": 1
+      },
+      "probability": 0.9142484499780766
+    }
+  ],
+  "feature_order": [
+    "query_length",
+    "longest_label_length",
+    "number_of_labels",
+    "entropy",
+    "digit_ratio",
+    "special_char_ratio",
+    "subdomain_length",
+    "query_frequency",
+    "unique_subdomains",
+    "time_interval"
+  ],
+  "ingestion": {
+    "dns_query_packets": 15000,
+    "non_query_packets": 15000,
+    "packets": 30000
+  },
+  "limitations": [
+    "Single small generated top-domain benign capture; not representative of cloud/CDN bursts.",
+    "Benign-only probe: cannot measure attack recall or overall classifier accuracy.",
+    "UDP single-question DNS only; no TCP or IP fragment reassembly.",
+    "Fresh behavioral history at the capture boundary; publisher sample may split longer sessions.",
+    "No training or threshold changes made using probe scores."
+  ],
+  "model": {
+    "sha256": "e526182243b0f904fd8c2b2fd1795f7023faf9afca74c6bfad8bd30d378117fa",
+    "threshold": 0.83
+  },
+  "probability_quantiles": {
+    "0": 0.0,
+    "0.5": 0.0006620237450903637,
+    "0.95": 0.07335829248421048,
+    "1": 0.9750454737367474
+  },
+  "source": {
+    "capture_bytes": 3635504,
+    "capture_sha256": "3a383980f3b83e0c9832ddb45b90ed3664867fd12df701df0375fdae08c9cef4",
+    "label_basis": "Publisher benign directory; not independently relabelled",
+    "license": "CC BY 4.0",
+    "publisher_file": "dns-exfiltration-dataset/01_original_pcap_files/benign/top_1_million_domains/normal_00000_20230805150331.pcap",
+    "repository": "https://github.com/Daumel/dns-exfiltration-dataset",
+    "url": "https://www.kaggle.com/datasets/daumel/dns-tunneling-dataset"
+  },
+  "unseen_apex_domains": 13576,
+  "unseen_apex_queries": {
+    "false_positive_rate": 0.0004069175991861648,
+    "false_positives": 6,
+    "queries": 14745
+  }
+}
