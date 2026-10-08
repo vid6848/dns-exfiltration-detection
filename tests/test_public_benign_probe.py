@@ -41,3 +41,18 @@ def test_capture_query_filtering_and_causal_order(tmp_path):
 def test_empty_unseen_subset_has_no_estimated_fpr():
     result = benign_metrics(np.array([1, 0]), np.array([False, False]))
     assert result == dict(queries=0, false_positives=0, false_positive_rate=None)
+
+
+def test_importer_packet_prefix_and_timestamp_precision(tmp_path):
+    from scripts.import_public_benign import convert
+    from src.ml.data import load_records
+    path = tmp_path / 'benign.pcap'
+    output = tmp_path / 'benign.csv'
+    wrpcap(str(path), [packet('first.example.org.', 1000.123456),
+                      packet('second.example.org.', 1002)])
+    report = convert(path, output, 'benign/test.pcap', max_packets=1)
+    records, _ = load_records(output)
+    assert len(records) == 1
+    assert records[0].record.epoch_time == 1000.123456
+    assert report['counts']['packet_limit_reached'] == 1
+    assert report['rows'] == 1
