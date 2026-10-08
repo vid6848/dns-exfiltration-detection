@@ -8,6 +8,13 @@ false-positive targets. Run `python -m src.ml.robust_train`; see the
 [v0.2 validation workflow](docs/robust_random_forest.md). The original v0.1
 experiment remains available below for reproducibility and comparison.
 
+The [v0.2 results](artifacts/random_forest_v0.2/RESULTS.md) still show a 99.83%
+false-positive rate when the AWS apex is entirely unseen. The model is a
+development artifact, not ready for deployment. A separate public benign probe
+had 6 false positives in 15,000 queries; see [public dataset research and probe
+instructions](docs/public_benign_data_research.md). Broader cloud/CDN benign
+coverage remains necessary.
+
 The offline training stage now provides domain-disjoint train/validation/test
 splits, the exact ten-feature input contract, validation-selected Random Forest
 training, and a saved inference bundle with its feature order and decision
