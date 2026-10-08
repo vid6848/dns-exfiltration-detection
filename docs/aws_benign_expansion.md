@@ -73,6 +73,18 @@ time_interval
 Use Python 3.12 and the pinned training/dev dependencies plus
 `requirements-data.txt`. From the repository root:
 
+The exact accepted CSV and provenance sidecar are included as a 1.23 MB gzip
+archive with the experiment, so the large PCAP download is optional. Restore to
+a new local path, then run selection and verification:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.restore_public_benign --output .public-data-research/university_restored.csv
+.\.venv\Scripts\python.exe -m src.ml.aws_generalization --benign .public-data-research/university_restored.csv --output-dir artifacts/aws_benign_expansion_repeat --n-jobs 2
+.\.venv\Scripts\python.exe -m scripts.summarize_aws_expansion --experiment-dir artifacts/aws_benign_expansion_repeat
+```
+
+Alternatively, rebuild that input from the original capture:
+
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-data.txt
 New-Item -ItemType Directory -Path .public-data-research -Force

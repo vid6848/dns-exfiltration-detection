@@ -2,6 +2,8 @@
 
 import argparse
 import csv
+import gzip
+import hashlib
 import json
 from pathlib import Path
 
@@ -22,11 +24,16 @@ def summarize(directory):
     new = np.array([int(r['prediction']) for r in rows])
     probabilities = np.array([float(r['attack_probability']) for r in rows])
     aws = np.array([r['apex_domain'] == 'amazonaws.com' for r in rows])
+    archive_hash = hashlib.sha256()
+    with gzip.open(directory / 'public_benign.csv.gz', 'rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            archive_hash.update(block)
     checks = dict(
         model_hash_matches=sha256_file(directory / 'random_forest.joblib') == log['artifact']['sha256'],
         input_hash_matches=sha256_file(Path(log['input_path'])) == log['input_sha256'],
         source_hashes_match=all(sha256_file(Path(p)) == digest for p, digest in log['source_sha256'].items()),
         public_input_hashes_match=all(sha256_file(Path(r['path'])) == r['sha256'] for r in log['public_inputs']),
+        public_archive_content_matches=archive_hash.hexdigest() == log['public_inputs'][0]['sha256'],
         aws_excluded_from_training=log['aws_training_rows'] == 0,
         all_evaluation_domains_excluded=log['evaluation_domain_overlap'] == 0,
         feature_order_exact=tuple(bundle['feature_order']) == FEATURE_ORDER,
@@ -80,7 +87,8 @@ def summarize(directory):
         'checks passed. Details are in verification.json and experiment.json.', '',
         'The saved model retains the evaluation-domain exclusions. It is a diagnostic',
         'development artifact, not an all-data deployment model. No raw PCAP is',
-        'committed. Reproduce the input with the documented public download/import.',
+        'committed. Restore the included CSV archive or repeat the documented',
+        'public download/import to reproduce the development input.',
         'Publisher ground truth was not independently relabelled. Independent real',
         'attack captures and untouched benign sources are still required for a final',
         'generalization claim. Inspect recall alongside FPR; reducing false positives',
