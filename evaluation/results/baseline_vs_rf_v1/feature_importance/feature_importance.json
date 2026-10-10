@@ -1,0 +1,71 @@
+{
+  "model_artifact": "artifacts\\aws_benign_expansion_v0.1\\random_forest.joblib",
+  "feature_manifest": "artifacts\\aws_benign_expansion_v0.1\\feature_order.json",
+  "decision_threshold": 0.89,
+  "window_seconds": 60.0,
+  "importance_method": "Random Forest feature_importances_ (impurity-based global importance)",
+  "interpretation_note": "Importance is model-specific and global. It does not establish causality or explain an individual prediction. Correlated features may share or redistribute importance.",
+  "importance_sum": 0.9999999999999999,
+  "features": [
+    {
+      "rank": 1,
+      "feature": "entropy",
+      "importance": 0.389911759144166,
+      "importance_percent": 38.9911759144166
+    },
+    {
+      "rank": 2,
+      "feature": "subdomain_length",
+      "importance": 0.17835728260563374,
+      "importance_percent": 17.835728260563375
+    },
+    {
+      "rank": 3,
+      "feature": "query_length",
+      "importance": 0.14848749031484995,
+      "importance_percent": 14.848749031484996
+    },
+    {
+      "rank": 4,
+      "feature": "digit_ratio",
+      "importance": 0.09541557725219219,
+      "importance_percent": 9.541557725219219
+    },
+    {
+      "rank": 5,
+      "feature": "longest_label_length",
+      "importance": 0.08793240888455768,
+      "importance_percent": 8.793240888455768
+    },
+    {
+      "rank": 6,
+      "feature": "special_char_ratio",
+      "importance": 0.061328470676852855,
+      "importance_percent": 6.132847067685286
+    },
+    {
+      "rank": 7,
+      "feature": "time_interval",
+      "importance": 0.014581995132632303,
+      "importance_percent": 1.4581995132632304
+    },
+    {
+      "rank": 8,
+      "feature": "number_of_labels",
+      "importance": 0.012011755873734742,
+      "importance_percent": 1.2011755873734742
+    },
+    {
+      "rank": 9,
+      "feature": "unique_subdomains",
+      "importance": 0.007361083923192013,
+      "importance_percent": 0.7361083923192013
+    },
+    {
+      "rank": 10,
+      "feature": "query_frequency",
+      "importance": 0.004612176192188497,
+      "importance_percent": 0.4612176192188497
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "evaluation_records": 45240,
+  "source_csv": "data\\processed\\cleaned_unified_v0.1.csv",
+  "source_sha256": "c0b26b31ccd6d959a059c56850a0f42bc227f7a1669642befb091c0fdf16c983",
+  "model_artifact": "artifacts\\aws_benign_expansion_v0.1\\random_forest.joblib",
+  "decision_threshold": 0.89,
+  "behavioral_window_seconds": 60.0,
+  "duplicate_source_rows_removed": 0,
+  "baseline_rule": {
+    "query_length": 52.0,
+    "entropy": 4.309101,
+    "query_frequency": 41.0,
+    "unique_subdomains": 41.0,
+    "min_indicators": 2,
+    "selection": "Frozen from engineering handoff; not tuned on evaluation data"
+  },
+  "statistical_baseline": {
+    "accuracy": 0.9717727674624226,
+    "precision": 0.7272064186725018,
+    "recall": 0.5247368421052632,
+    "f1": 0.6095995108529502,
+    "false_positive_rate": 0.008629441624365483,
+    "tp": 997,
+    "tn": 42966,
+    "fp": 374,
+    "fn": 903,
+    "confusion_matrix": [
+      [
+        42966,
+        374
+      ],
+      [
+        903,
+        997
+      ]
+    ]
+  },
+  "random_forest": {
+    "accuracy": 0.9960212201591512,
+    "precision": 1.0,
+    "recall": 0.9052631578947369,
+    "f1": 0.9502762430939227,
+    "false_positive_rate": 0.0,
+    "tp": 1720,
+    "tn": 43340,
+    "fp": 0,
+    "fn": 180,
+    "confusion_matrix": [
+      [
+        43340,
+        0
+      ],
+      [
+        180,
+        1720
+      ]
+    ],
+    "roc_auc": 0.9977639593908629,
+    "average_precision": 0.9879372867654621
+  },
+  "verification": {
+    "source_hash_matches": true,
+    "unique_diagnostic_row_ids": true,
+    "source_labels_match": true,
+    "apex_domains_match": true,
+    "complete_apex_histories": true,
+    "rf_predictions_reproduced": true,
+    "rf_probabilities_reproduced": true,
+    "rf_metrics_match_experiment": true
+  },
+  "scope": "Previously inspected diagnostic development evaluation. Not an independent final test or proof of real-world generalization."
+}
