@@ -15,7 +15,7 @@ export default function LiveStatsCards() {
             <span>📡</span>
           </div>
           <div className="stat-card-value blank">--</div>
-          <div className="stat-card-subtext">No live traffic data yet (API not connected)</div>
+          <div className="stat-card-subtext">Live packet data is not available yet (capture stream pending)</div>
         </div>
 
         <div className="stat-card">

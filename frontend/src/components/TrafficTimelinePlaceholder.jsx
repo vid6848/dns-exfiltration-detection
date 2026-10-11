@@ -12,8 +12,8 @@ export default function TrafficTimelinePlaceholder() {
         <div className="empty-icon">📈</div>
         <div className="empty-title">No traffic timeline available yet</div>
         <p className="empty-desc">
-          Live network packet sniffing (Scapy) and dataset replay are not currently active. 
-          Once the FastAPI backend is running, this chart will render query volume over time.
+          Live network packet sniffing (Scapy) and dataset replay are not currently active.
+          Once live packet capture or dataset replay is connected, this chart will render query volume over time.
         </p>
       </div>
     </div>

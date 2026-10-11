@@ -28,3 +28,7 @@ htmlcov/
 .pytest-work-temp/
 artifacts/random_forest_repeat/
 .public-data-research/
+
+# Frontend build & dependencies
+frontend/node_modules/
+frontend/dist/
