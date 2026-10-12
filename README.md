@@ -464,55 +464,71 @@ Scapy
 Joblib
 ```
 
-FastAPI will connect the trained model and analysis functions to the frontend.
+FastAPI connects the trained model and feature-extraction pipeline to the frontend dashboard.
 
-### Main API endpoints
+### Implemented Endpoints
+
+#### `GET /`
+Health and service info check. Returns service status and name.
+
+#### `GET /health`
+Liveness check returning health state and whether the Random Forest model bundle is loaded in memory.
 
 #### `POST /predict`
-
-Accepts a DNS query or extracted feature data and returns:
-
+Performs real-time inference on an individual DNS query. Accepts JSON:
 ```json
 {
-  "prediction": "Suspicious",
-  "probability": 0.91,
-  "risk_level": "HIGH"
+  "timestamp": "2026-10-12T00:00:00Z",
+  "src_ip": "10.0.4.12",
+  "dst_ip": "8.8.8.8",
+  "requested_server_name": "v2-tunnel.darkops-c2.net",
+  "query_type": "TXT",
+  "source": "CyberTrace Dashboard"
+}
+```
+Returns classification label, prediction category, calibrated attack probability score, and decision threshold:
+```json
+{
+  "prediction": "suspicious",
+  "label": 1,
+  "attack_probability": 0.9927,
+  "decision_threshold": 0.89
 }
 ```
 
 #### `POST /analyze`
-
-Analyzes an uploaded DNS dataset.
-
-Returns:
-
-```text
-Total queries
-Benign queries
-Suspicious queries
-Risk statistics
+Analyzes a batch of DNS queries (1 to 1000 items) using a sliding-window behavioral extractor that accumulates query frequency, unique subdomains, and temporal intervals across related queries while preserving original submission order. Accepts:
+```json
+{
+  "queries": [
+    {
+      "timestamp": "2026-10-12T00:00:00Z",
+      "src_ip": "10.0.4.12",
+      "dst_ip": "8.8.8.8",
+      "requested_server_name": "v2-chunk01.tunnel.net",
+      "query_type": "TXT"
+    }
+  ]
+}
+```
+Returns aggregate counts and itemized predictions:
+```json
+{
+  "total_queries": 1,
+  "suspicious_queries": 1,
+  "benign_queries": 0,
+  "results": [ ... ]
+}
 ```
 
-#### `GET /alerts`
+### Planned / Roadmap Endpoints (Continuous Ingestion Scope)
 
-Returns detected suspicious DNS activity.
+The following endpoints represent planned continuous live-capture extensions for production deployment and are currently represented as informative empty states in the React dashboard:
 
-#### `GET /statistics`
-
-Returns traffic statistics for the dashboard.
-
-#### `GET /model-performance`
-
-Returns:
-
-```text
-Accuracy
-Precision
-Recall
-F1-score
-False Positive Rate
-Confusion Matrix
-```
+- **`GET /alerts`**: Streaming alert feed for active continuous packet capture (currently displays empty state waiting for continuous capture connection).
+- **`GET /statistics`**: Real-time traffic aggregation stream across multi-host network segments.
+- **`GET /model-performance`**: Dynamic model monitoring API; in the current release, verified model benchmarks and feature importance rankings are served directly from verified evaluation artifacts (`evaluation/results/baseline_vs_rf_v1/`) and visualized via the dashboard's offline performance components.
+- **CSV Dataset File Upload (`POST /upload`)**: Direct bulk file ingest for raw PCAP/CSV files.
 
 ---
 
