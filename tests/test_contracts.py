@@ -156,6 +156,41 @@ def test_saved_089_threshold_enforced(client):
     assert "diagnostic/development" in data["diagnostic_label"]
 
 
+def test_rule_indicators_derived_from_frozen_baseline(client):
+    """Verify that rule indicators derive from frozen baseline thresholds (query_length>=52, entropy>=4.309101, etc.)."""
+    from api.main import compute_rule_indicators, FROZEN_BASELINE_THRESHOLDS
+    assert FROZEN_BASELINE_THRESHOLDS["query_length"] == 52.0
+    assert FROZEN_BASELINE_THRESHOLDS["entropy"] == 4.309101
+    assert FROZEN_BASELINE_THRESHOLDS["query_frequency"] == 41.0
+    assert FROZEN_BASELINE_THRESHOLDS["unique_subdomains"] == 41.0
+
+    # 1. Benign-like features: none trigger
+    benign_feats = {
+        "query_length": 15,
+        "entropy": 3.0,
+        "query_frequency": 1.0,
+        "unique_subdomains": 1.0,
+    }
+    ind_benign = compute_rule_indicators(benign_feats)
+    assert ind_benign["query_length_flag"] is False
+    assert ind_benign["entropy_flag"] is False
+    assert ind_benign["agreeing_indicators_count"] == 0
+    assert ind_benign["baseline_flagged"] is False
+
+    # 2. High entropy and long length: 2 indicators agree -> baseline_flagged True
+    attack_feats = {
+        "query_length": 60,
+        "entropy": 4.5,
+        "query_frequency": 1.0,
+        "unique_subdomains": 1.0,
+    }
+    ind_attack = compute_rule_indicators(attack_feats)
+    assert ind_attack["query_length_flag"] is True
+    assert ind_attack["entropy_flag"] is True
+    assert ind_attack["agreeing_indicators_count"] == 2
+    assert ind_attack["baseline_flagged"] is True
+
+
 def test_error_status_codes_and_validation(client):
     """Verify that invalid payloads return standard HTTP 422 errors."""
     res = client.post("/predict", json={"src_ip": "10.0.0.1"})

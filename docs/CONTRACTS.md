@@ -128,10 +128,12 @@ The inference bundle `artifacts/aws_benign_expansion_v0.1/random_forest.joblib` 
   "threshold": 0.89,
   "risk_label": "CRITICAL",
   "rule_indicators": {
-    "high_entropy": true,
-    "long_subdomain": true,
-    "burst_frequency": false,
-    "rapid_interval": false
+    "query_length_flag": true,
+    "entropy_flag": true,
+    "query_frequency_flag": false,
+    "unique_subdomains_flag": false,
+    "agreeing_indicators_count": 2,
+    "baseline_flagged": true
   },
   "model_identity": {
     "artifact": "artifacts/aws_benign_expansion_v0.1/random_forest.joblib",
@@ -142,6 +144,13 @@ The inference bundle `artifacts/aws_benign_expansion_v0.1/random_forest.joblib` 
   }
 }
 ```
+
+The `rule_indicators` map directly derives from the frozen 4-indicator statistical baseline (`src/baseline/detector.py`):
+- `query_length >= 52.0`
+- `entropy >= 4.309101`
+- `query_frequency >= 41.0`
+- `unique_subdomains >= 41.0`
+- `baseline_flagged`: `True` when $\ge 2$ indicators cross their thresholds simultaneously.
 
 ### 5.4 Risk Label Classification
 - `LOW`: `attack_score < 0.50`
