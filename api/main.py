@@ -1,9 +1,11 @@
+from collections import OrderedDict
 import csv
 from datetime import datetime, timezone
 import io
 import json
 import logging
 import os
+import threading
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -47,22 +49,32 @@ MAX_CSV_ROWS = 20000
 
 
 class AppStateStore:
-    """Thread-safe in-memory store for real processed query events and alerts."""
+    """Thread-safe in-memory store for real processed query events, alerts, and bounded capture extractors."""
 
-    def __init__(self, max_alerts: int = 500):
+    def __init__(self, max_alerts: int = 500, max_capture_extractors: int = 256):
+        self.lock = threading.Lock()
         self.max_alerts = max_alerts
+        self.max_capture_extractors = max_capture_extractors
         self.total_processed: int = 0
         self.total_suspicious: int = 0
         self.total_benign: int = 0
         self.alerts: List[Dict[str, Any]] = []
-        self.capture_extractors: Dict[str, BehavioralFeatureExtractor] = {}
+        # LRU bounded cache for capture extractors (max 256)
+        self.capture_extractors: OrderedDict[str, BehavioralFeatureExtractor] = OrderedDict()
 
     def get_capture_extractor(self, capture_id: str) -> BehavioralFeatureExtractor:
-        if capture_id not in self.capture_extractors:
-            self.capture_extractors[capture_id] = BehavioralFeatureExtractor(
-                window_seconds=60.0
-            )
-        return self.capture_extractors[capture_id]
+        with self.lock:
+            if capture_id in self.capture_extractors:
+                # Mark as recently used
+                self.capture_extractors.move_to_end(capture_id)
+                return self.capture_extractors[capture_id]
+
+            extractor = BehavioralFeatureExtractor(window_seconds=60.0)
+            self.capture_extractors[capture_id] = extractor
+            if len(self.capture_extractors) > self.max_capture_extractors:
+                # Evict least recently used capture extractor
+                self.capture_extractors.popitem(last=False)
+            return extractor
 
     def record_prediction(
         self,
@@ -71,32 +83,52 @@ class AppStateStore:
         attack_score: float,
         threshold: float,
         risk_label: str,
-        rule_indicators: Dict[str, bool],
+        rule_indicators: Dict[str, Any],
         capture_id: str,
     ) -> Optional[str]:
-        self.total_processed += 1
-        alert_id = None
-        if label == 1:
-            self.total_suspicious += 1
-            alert_id = f"alt_{uuid.uuid4().hex[:12]}"
-            alert_entry = {
-                "alert_id": alert_id,
-                "timestamp": str(record.timestamp),
-                "requested_server_name": str(record.requested_server_name),
-                "src_ip": str(record.src_ip),
-                "dst_ip": str(record.dst_ip),
-                "risk_label": risk_label,
-                "attack_score": float(attack_score),
-                "decision_threshold": float(threshold),
-                "rule_indicators": rule_indicators,
-                "capture_id": capture_id,
+        with self.lock:
+            self.total_processed += 1
+            alert_id = None
+            if label == 1:
+                self.total_suspicious += 1
+                alert_id = f"alt_{uuid.uuid4().hex[:12]}"
+                alert_entry = {
+                    "alert_id": alert_id,
+                    "timestamp": str(record.timestamp),
+                    "requested_server_name": str(record.requested_server_name),
+                    "src_ip": str(record.src_ip),
+                    "dst_ip": str(record.dst_ip),
+                    "risk_label": risk_label,
+                    "attack_score": float(attack_score),
+                    "decision_threshold": float(threshold),
+                    "rule_indicators": rule_indicators,
+                    "capture_id": capture_id,
+                }
+                self.alerts.insert(0, alert_entry)
+                if len(self.alerts) > self.max_alerts:
+                    self.alerts.pop()
+            else:
+                self.total_benign += 1
+            return alert_id
+
+    def get_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
+        with self.lock:
+            return list(self.alerts[:limit])
+
+    def get_statistics(self) -> Dict[str, Any]:
+        with self.lock:
+            total = self.total_processed
+            suspicious = self.total_suspicious
+            benign = self.total_benign
+            suspicious_rate = float(suspicious / total) if total > 0 else 0.0
+            return {
+                "total_processed": total,
+                "total_suspicious": suspicious,
+                "total_benign": benign,
+                "suspicious_rate": suspicious_rate,
+                "active_alerts_retained": len(self.alerts),
+                "has_live_data": bool(total > 0),
             }
-            self.alerts.insert(0, alert_entry)
-            if len(self.alerts) > self.max_alerts:
-                self.alerts.pop()
-        else:
-            self.total_benign += 1
-        return alert_id
 
 
 class DNSQuery(BaseModel):
@@ -558,7 +590,7 @@ async def analyze_csv(
 @app.get("/alerts")
 def get_alerts(limit: int = 50):
     """Retrieve suspicious events from processed records in reverse chronological order."""
-    alerts = app.state.store.alerts[:limit]
+    alerts = app.state.store.get_alerts(limit=limit)
     return {
         "count": len(alerts),
         "alerts": alerts,
@@ -568,20 +600,7 @@ def get_alerts(limit: int = 50):
 @app.get("/statistics")
 def get_statistics():
     """Retrieve actual cumulative traffic and detection counts derived from processed queries."""
-    store = app.state.store
-    total = store.total_processed
-    suspicious = store.total_suspicious
-    benign = store.total_benign
-    suspicious_rate = float(suspicious / total) if total > 0 else 0.0
-
-    return {
-        "total_processed": total,
-        "total_suspicious": suspicious,
-        "total_benign": benign,
-        "suspicious_rate": suspicious_rate,
-        "active_alerts_retained": len(store.alerts),
-        "has_live_data": bool(total > 0),
-    }
+    return app.state.store.get_statistics()
 
 
 @app.get("/model-performance")

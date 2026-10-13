@@ -210,6 +210,33 @@ def test_risk_label_never_contradicts_prediction():
     assert compute_risk_label(0.99, threshold) == "CRITICAL"
 
 
+def test_app_state_store_lock_and_lru_bounding():
+    """Verify that AppStateStore uses threading.Lock and bounds capture extractors to max_capture_extractors (LRU)."""
+    from api.main import AppStateStore
+    store = AppStateStore(max_alerts=10, max_capture_extractors=3)
+
+    # 1. Verify lock exists and is used
+    assert hasattr(store, "lock")
+
+    # 2. Add 3 capture extractors
+    e1 = store.get_capture_extractor("cap_1")
+    e2 = store.get_capture_extractor("cap_2")
+    e3 = store.get_capture_extractor("cap_3")
+    assert len(store.capture_extractors) == 3
+    assert list(store.capture_extractors.keys()) == ["cap_1", "cap_2", "cap_3"]
+
+    # Access cap_1 so it becomes most recently used: ["cap_2", "cap_3", "cap_1"]
+    e1_again = store.get_capture_extractor("cap_1")
+    assert e1_again is e1
+    assert list(store.capture_extractors.keys()) == ["cap_2", "cap_3", "cap_1"]
+
+    # Add 4th extractor -> cap_2 (oldest) should be evicted
+    e4 = store.get_capture_extractor("cap_4")
+    assert len(store.capture_extractors) == 3
+    assert "cap_2" not in store.capture_extractors
+    assert list(store.capture_extractors.keys()) == ["cap_3", "cap_1", "cap_4"]
+
+
 def test_error_status_codes_and_validation(client):
     """Verify that invalid payloads return standard HTTP 422 errors."""
     res = client.post("/predict", json={"src_ip": "10.0.0.1"})
