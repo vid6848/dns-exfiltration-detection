@@ -122,14 +122,36 @@ def compute_risk_label(attack_score: float, threshold: float) -> str:
     return "LOW"
 
 
-def compute_rule_indicators(features: Dict[str, Any]) -> Dict[str, bool]:
+FROZEN_BASELINE_THRESHOLDS = {
+    "query_length": 52.0,
+    "entropy": 4.309101,
+    "query_frequency": 41.0,
+    "unique_subdomains": 41.0,
+}
+
+
+def compute_rule_indicators(features: Dict[str, Any]) -> Dict[str, Any]:
+    """Derive indicators from frozen baseline thresholds in src/baseline/detector.py.
+
+    query_length >= 52.0
+    entropy >= 4.309101
+    query_frequency >= 41.0
+    unique_subdomains >= 41.0
+    baseline_flagged = True when >= 2 indicators agree.
+    """
+    length_flag = bool(float(features.get("query_length", 0.0)) >= FROZEN_BASELINE_THRESHOLDS["query_length"])
+    entropy_flag = bool(float(features.get("entropy", 0.0)) >= FROZEN_BASELINE_THRESHOLDS["entropy"])
+    freq_flag = bool(float(features.get("query_frequency", 1.0)) >= FROZEN_BASELINE_THRESHOLDS["query_frequency"])
+    subdomains_flag = bool(float(features.get("unique_subdomains", 1.0)) >= FROZEN_BASELINE_THRESHOLDS["unique_subdomains"])
+    agreeing_count = sum([length_flag, entropy_flag, freq_flag, subdomains_flag])
+
     return {
-        "high_entropy": bool(features.get("entropy", 0.0) >= 4.0),
-        "long_subdomain": bool(features.get("subdomain_length", 0) >= 25),
-        "burst_frequency": bool(features.get("query_frequency", 1.0) >= 10.0),
-        "rapid_interval": bool(
-            0.0 <= features.get("time_interval", -1.0) <= 2.0
-        ),
+        "query_length_flag": length_flag,
+        "entropy_flag": entropy_flag,
+        "query_frequency_flag": freq_flag,
+        "unique_subdomains_flag": subdomains_flag,
+        "agreeing_indicators_count": agreeing_count,
+        "baseline_flagged": bool(agreeing_count >= 2),
     }
 
 

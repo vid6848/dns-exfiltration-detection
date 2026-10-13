@@ -63,24 +63,29 @@ export default function LiveAlertsTable({ alerts, loading, onRefresh }) {
                   <td style={{ fontSize: '0.75rem' }}>
                     {alert.rule_indicators ? (
                       <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
-                        {alert.rule_indicators.high_entropy && (
+                        {alert.rule_indicators.entropy_flag && (
                           <span className="proxy-indicator" style={{ borderColor: 'rgba(244,63,94,0.4)', color: '#fb7185' }}>
-                            Entropy ≥ 4.0
+                            Entropy ≥ 4.31
                           </span>
                         )}
-                        {alert.rule_indicators.long_subdomain && (
+                        {alert.rule_indicators.query_length_flag && (
                           <span className="proxy-indicator" style={{ borderColor: 'rgba(244,63,94,0.4)', color: '#fb7185' }}>
-                            Subdomain ≥ 25
+                            Length ≥ 52
                           </span>
                         )}
-                        {alert.rule_indicators.burst_frequency && (
+                        {alert.rule_indicators.query_frequency_flag && (
                           <span className="proxy-indicator" style={{ borderColor: 'rgba(244,63,94,0.4)', color: '#fb7185' }}>
-                            Burst Freq
+                            Frequency ≥ 41
                           </span>
                         )}
-                        {alert.rule_indicators.rapid_interval && (
+                        {alert.rule_indicators.unique_subdomains_flag && (
                           <span className="proxy-indicator" style={{ borderColor: 'rgba(244,63,94,0.4)', color: '#fb7185' }}>
-                            Rapid Pacing
+                            Subdomains ≥ 41
+                          </span>
+                        )}
+                        {alert.rule_indicators.baseline_flagged && (
+                          <span className="proxy-indicator" style={{ borderColor: 'rgba(245,158,11,0.6)', color: '#f59e0b', fontWeight: 700 }}>
+                            Baseline Corroborated (≥2)
                           </span>
                         )}
                       </div>
