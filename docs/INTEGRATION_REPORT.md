@@ -142,7 +142,7 @@ Full investigation documented in `docs/provenance_investigation.md`:
 - Replacing Unix LF (`\n`) line endings with Windows CRLF (`\r\n`) produced an **exact, character-for-character match** with the recorded hash:
   - LF hash: `cb97a101b004d331f2cd4dc5887a18bda27a2d6f353ad67cf50f2f5d49240019`
   - CRLF hash: `bf921fc0c49b0c38bda451903adc168536f812082e458f0025d751d15cbae71f` (Recorded in `experiment.json`)
-- **Conclusion:** Preprocessing and feature engineering modules were authored on Windows where git checked them out with CRLF endings. When the training experiment script hashed the files in binary mode, it hashed the CRLF bytes. On Unix checkouts (LF), binary hashing diverges. **The underlying code semantics are 100% identical. No metadata was modified to artificially suppress the warning.**
+- **Conclusion:** Root cause identified as operating system line ending serialization: preprocessing and feature engineering modules were authored on Windows where git checked them out with CRLF endings. When the training experiment script hashed the files in binary mode, it hashed the CRLF bytes. On Unix checkouts (LF), binary hashing diverges. Running `summarize_aws_expansion` on Unix continues to evaluate `source_hashes_match = false` as recorded. No metadata was modified to artificially suppress the warning; a future `.gitattributes` configuration (`*.py text eol=lf`) is recommended.
 
 ---
 

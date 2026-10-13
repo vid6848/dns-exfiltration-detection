@@ -1,8 +1,8 @@
-# Technical Investigation: Resolution of `source_hashes_match = false`
+# Technical Investigation: Analysis of `source_hashes_match = false`
 
 **Investigator:** Soham (Project Coordination & Integration, `soham.prajapati24@spit.ac.in`)  
 **Date:** 2026-10-13  
-**Status:** Root Cause Determined & Resolved (Line Ending Encoding Discrepancy)  
+**Status:** Root cause identified (Line Ending Encoding Discrepancy)  
 **Applicable Rule:** Under project hard rules, recorded hashes in metadata were **NOT** edited or suppressed.  
 
 ---
@@ -90,10 +90,19 @@ Testing all 19 files across the repository with CRLF normalization:
 2. **Git Repository Normalization:**
    - When files are checked out on Linux/macOS or with default Git newline normalization, files are stored as LF in the Git object store.
    - Consequently, hashing the on-disk file in binary mode on Unix yields the LF hash, causing `source_hashes_match` to return `False`.
+3. **Current State of the Summarizer:**
+   - Because the recorded hashes remain frozen as CRLF in `experiment.json`, running `python -m scripts.summarize_aws_expansion` on Unix platforms still evaluates `source_hashes_match = false` as originally recorded.
 
 ---
 
-## 4. Policy Compliance
+## 4. Policy Compliance & Future Recommendation
 
-- As required by the hard constraints, **we did NOT alter `experiment.json` or `verification.json` to artificially force this check to pass**.
+- **Policy Adherence:** As required by the hard constraints, **we did NOT alter `experiment.json` or `verification.json` to artificially force this check to pass**.
+- **Future Project Recommendation:**
+  For future releases or retraining phases, enforce repository-wide line ending consistency by adding a `.gitattributes` configuration at repository root:
+  ```gitattributes
+  * text=auto eol=lf
+  *.py text eol=lf
+  ```
+  And in Python hashing utilities, hash normalized decoded text streams (e.g. `f.read().replace('\r\n', '\n').encode('utf-8')`) rather than raw OS-dependent filesystem bytes.
 - This investigation proves that the underlying source code algorithms and implementations are 100% intact, bit-for-bit identical in algorithmic semantics, and that the discrepancy is solely an operating system newline serialization artifact.
