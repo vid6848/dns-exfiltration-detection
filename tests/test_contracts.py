@@ -191,6 +191,25 @@ def test_rule_indicators_derived_from_frozen_baseline(client):
     assert ind_attack["baseline_flagged"] is True
 
 
+def test_risk_label_never_contradicts_prediction():
+    """Verify that compute_risk_label below threshold is always benign tier ('LOW' or 'ELEVATED') and >= threshold is 'CRITICAL'."""
+    from api.main import compute_risk_label
+    threshold = 0.89
+
+    # Score below 0.50 -> LOW (benign)
+    assert compute_risk_label(0.10, threshold) == "LOW"
+    assert compute_risk_label(0.499, threshold) == "LOW"
+
+    # Score between 0.50 and threshold (0.89) -> ELEVATED (benign)
+    assert compute_risk_label(0.50, threshold) == "ELEVATED"
+    assert compute_risk_label(0.85, threshold) == "ELEVATED"
+    assert compute_risk_label(0.889, threshold) == "ELEVATED"
+
+    # Score >= threshold -> CRITICAL (suspicious)
+    assert compute_risk_label(0.89, threshold) == "CRITICAL"
+    assert compute_risk_label(0.99, threshold) == "CRITICAL"
+
+
 def test_error_status_codes_and_validation(client):
     """Verify that invalid payloads return standard HTTP 422 errors."""
     res = client.post("/predict", json={"src_ip": "10.0.0.1"})

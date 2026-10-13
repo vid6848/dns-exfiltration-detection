@@ -153,10 +153,12 @@ The `rule_indicators` map directly derives from the frozen 4-indicator statistic
 - `baseline_flagged`: `True` when $\ge 2$ indicators cross their thresholds simultaneously.
 
 ### 5.4 Risk Label Classification
-- `LOW`: `attack_score < 0.50`
-- `MEDIUM`: `0.50 <= attack_score < 0.80`
-- `HIGH`: `0.80 <= attack_score < 0.89`
-- `CRITICAL` / `SUSPICIOUS`: `attack_score >= 0.89` (flags alert)
+The risk tier classification is designed to never contradict the binary prediction decision:
+- **Benign Tiers (`attack_score < threshold`, prediction = `benign`):**
+  - `LOW`: `attack_score < 0.50` (routine benign traffic)
+  - `ELEVATED`: `0.50 <= attack_score < threshold` (non-standard benign query, e.g. CDN or cloud subdomain, but below operating threshold $\tau = 0.89$; explicitly classified as benign)
+- **Suspicious Tier (`attack_score >= threshold`, prediction = `suspicious`):**
+  - `CRITICAL`: `attack_score >= threshold` (flags detection alert, $\tau = 0.89$)
 
 ---
 
