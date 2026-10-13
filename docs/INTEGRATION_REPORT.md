@@ -79,6 +79,15 @@ Every contribution was delivered through small, conventional commits adhering st
 | `af022b5` | `ci: add GitHub Actions workflow, PR template, CODEOWNERS, and CONTRIBUTING guide` | `.github/workflows/ci.yml`, `.github/pull_request_template.md`, `CODEOWNERS`, `CONTRIBUTING.md` | Established CI pipeline running pytest, model verification, frontend test/build, and formal repository governance. |
 | `f58426e` | `docs(provenance): document root cause of source_hashes_match newline divergence` | `docs/provenance_investigation.md` | Discovered and documented the CRLF vs LF root cause of source hash divergence without tampering with metadata. |
 | `ef0ad9a` | `docs(demo): add reproducible end-to-end demonstration guide` | `docs/DEMO.md` | Step-by-step reproducible walkthrough covering setup, execution, single queries, CSV upload, and telemetry verification. |
+| `39885b4` | `docs(report): add standalone integration report and PDF export with live screenshots` | `docs/INTEGRATION_REPORT.md`, `docs/report/Soham_Integration_Report.pdf` | Authored comprehensive standalone integration report with live screenshots and PDF build. |
+| `420efaf` | `fix(api): derive rule indicators from frozen baseline thresholds` | `api/main.py`, `docs/CONTRACTS.md`, `tests/test_contracts.py` | Derived rule indicators from frozen detector thresholds (`query_length>=52`, `entropy>=4.309101`, `query_frequency>=41`, `unique_subdomains>=41`). |
+| `945fd83` | `fix(api): align risk label tiers with prediction contract` | `api/main.py`, `docs/CONTRACTS.md`, `tests/test_contracts.py` | Enforced strict prediction consistency: `<0.50` LOW, `0.50..0.89` ELEVATED (both benign), `\ge0.89` CRITICAL (suspicious). |
+| `00e6793` | `fix(api): align /analyze/csv missing-timestamp fallback with contract policy` | `api/main.py`, `tests/test_e2e.py` | Implemented fallback to previous valid row timestamp or server ingestion time with logged warning, removing hardcoded date. |
+| `c7f26d3` | `fix(api): add threading.Lock and bounded LRU cache for capture extractors` | `api/main.py`, `docs/CONTRACTS.md`, `tests/test_contracts.py` | Added thread-safe synchronization to `AppStateStore` and bounded `capture_extractors` cache to 256 entries. |
+| `77624d4` | `fix(api): dynamically read bundle properties and add Query bounds on /alerts limit` | `api/main.py`, `tests/test_contracts.py` | Dynamically derived tree/feature counts from bundle and metrics JSON; bounded `/alerts` limit to `Query(50, ge=1, le=500)`. |
+| `67f763b` | `docs(provenance): update investigation status to root cause identified and recommend .gitattributes` | `docs/provenance_investigation.md` | Updated status to "Root cause identified", noted Unix hash divergence persists as recorded, recommended `.gitattributes`. |
+| `c9b777b` | `docs(reviews): align review scopes and verify line references against PR diffs` | `docs/reviews/PR-1.md` through `PR-5.md`, `README.md` | Aligned review criticisms strictly with assigned team roles and verified line references against exact PR diffs. |
+| `7cea316` | `chore(report): compress dashboard screenshots for report distribution` | `docs/report/screenshots/*.png` | Downscaled and quantized dashboard screenshots, reducing total image footprint from ~5MB to ~900KB. |
 
 ---
 
@@ -123,7 +132,7 @@ Exhaustive reviews were authored and saved under `docs/reviews/`:
 3. **PR #2 (Preprocessing & Normalization, `docs/reviews/PR-2.md`):**
    - Highlighted strict data leakage assertions; noted the missing root `requirements.txt`.
 4. **PR #3 (Model Evaluation, `docs/reviews/PR-3.md`):**
-   - Commended fair side-by-side comparison on 45,240 diagnostic records; identified unresolved `source_hashes_match` and missing API serving endpoint.
+   - Commended fair side-by-side comparison on 45,240 diagnostic records; identified unresolved `source_hashes_match` and latency sample size caveats.
 5. **PR #4 (FastAPI Backend, `docs/reviews/PR-4.md`):**
    - Commended startup lifespan bundle loading; confirmed the critical behavioral extractor re-instantiation bug inside `/analyze`, absence of CORS, and omission of `/alerts`, `/statistics`, and `/model-performance`.
 6. **PR #5 (React Dashboard, `docs/reviews/PR-5.md`):**
@@ -154,10 +163,10 @@ Full investigation documented in `docs/provenance_investigation.md`:
 | **CSV upload** | CSV validated, normalized, processed chronologically via shared pipeline. | Implemented `POST /analyze/csv` in `api/main.py`. Verified in `tests/test_e2e.py:test_e2e_csv_upload_valid_flow` and browser CSV tab. Handles missing timestamps and skips invalid rows gracefully. |
 | **Behavioural history** | Related events share history within a capture; unrelated captures do not. | Partitioned behavioral extractors by `capture_id`. Verified in `tests/test_e2e.py:test_e2e_capture_isolation` ensuring events under `capture_alpha` do not contaminate `capture_beta`. |
 | **Errors** | Invalid requests/rows return clear, documented errors. | Verified in `tests/test_api.py` and `tests/test_e2e.py`. Empty batches and missing FQDN headers raise HTTP 400/422 with descriptive detail strings. |
-| **Alerts and statistics** | Alert list and aggregate counts match actual processed records. | Implemented `GET /alerts` and `GET /statistics` with in-memory event tracking. Verified in `tests/test_e2e.py` and live dashboard telemetry (processed 103 queries -> recorded 91 suspicious, 12 benign). |
-| **Dashboard** | Charts/counts reflect live API responses, not static demo values. | Replaced static placeholder values in `LiveStatsCards.jsx`, `LiveAlertsTable.jsx`, and `TrafficTimelinePlaceholder.jsx` with dynamic API hooks. Dashboard updates automatically. |
+| **Alerts and statistics** | Alert list and aggregate counts match actual processed records. | Implemented `GET /alerts` and `GET /statistics` with in-memory event tracking and polled UI synchronization. Verified in `tests/test_e2e.py` and dashboard telemetry (processed 103 queries -> recorded 91 suspicious, 12 benign). |
+| **Dashboard** | Charts/counts reflect live API responses, not static demo values. | Replaced static placeholder values in `LiveStatsCards.jsx`, `LiveAlertsTable.jsx`, and `TrafficTimelinePlaceholder.jsx` with dynamic polled API hooks. Dashboard updates on user action and automatic polling intervals. |
 | **Metrics labels** | Model metrics identify the model and threshold and are marked diagnostic/development. | `GET /model-performance` returns `diagnostic_label: "diagnostic/development evaluation, not independent final test"`, artifact path, and threshold 0.89. Displayed in UI callout. |
-| **Verification** | Existing tests and new endpoint tests pass; setup/demo can be reproduced by another member. | All 89 backend pytest tests and 8 frontend tests pass 100%. `verify_release_models` passes bit-for-bit. Complete walkthrough documented in `docs/DEMO.md` and `Makefile`. |
+| **Verification** | Existing tests and new endpoint tests pass; setup/demo can be reproduced by another member. | All 95 backend pytest tests and 8 frontend tests pass 100%. `verify_release_models` passes bit-for-bit. Complete walkthrough documented in `docs/DEMO.md` and `Makefile`. |
 
 ---
 
@@ -167,7 +176,7 @@ Full investigation documented in `docs/provenance_investigation.md`:
 
 | Test Suite | Baseline State (`main`) | After Param Merge | Final Integrated State (`integration/soham-e2e`) |
 |---|---|---|---|
-| **Backend Pytest** | 67 passed, 13 subtests | 78 passed, 13 subtests | **89 passed, 13 subtests passed (100%)** |
+| **Backend Pytest** | 67 passed, 13 subtests | 78 passed, 13 subtests | **95 passed, 13 subtests passed (100%)** |
 | **Release Model Verification** | 2 release models reproduced | 2 release models reproduced | **2 release models reproduced (100% bit-for-bit)** |
 | **Frontend Tests (`npm test`)** | 0 tests (missing script) | 6 passed tests | **8 passed tests (100%)** |
 | **Frontend Build (`npm run build`)** | Passed | Passed | **Passed (0 warnings, 0 errors)** |
@@ -178,11 +187,11 @@ Full investigation documented in `docs/provenance_investigation.md`:
 
 ### Initial Dashboard State (Connected to Live API)
 ![Initial Dashboard](screenshots/dashboard_initial.png)
-*Figure 9.1: Live CyberTrace Dashboard initialized, showing real-time connectivity to FastAPI backend, active inference forms, and ready alert feed.*
+*Figure 9.1: CyberTrace Dashboard initialized, showing real-time connectivity to FastAPI backend, active inference forms, and ready polled alert feed.*
 
 ### Live Telemetry & Populated Alert Feed After Ingestion
 ![Active Dashboard with Live Ingestion](screenshots/dashboard_active.png)
-*Figure 9.2: Live CyberTrace Dashboard after processing single queries and CSV upload. Telemetry reflects 103 total processed queries (91 suspicious, 12 benign), alert feed populated with individual alert IDs and trigger indicators, and traffic breakdown chart active.*
+*Figure 9.2: CyberTrace Dashboard after processing single queries and CSV upload. Telemetry reflects 103 total processed queries (91 suspicious, 12 benign), polled alert feed populated with individual alert IDs and trigger indicators, and traffic breakdown chart active.*
 
 ---
 
@@ -194,5 +203,22 @@ Full investigation documented in `docs/provenance_investigation.md`:
    Attacks were simulated using known exfiltration tools and pacing. Zero observed false positives applies strictly to the 43,340 evaluated benign records.
 3. **Encrypted DNS:**
    CyberTrace analyzes plaintext DNS queries where domain names are transparent. DoH/DoT tunneling requires TLS termination, host telemetry, or proxy inspection.
-4. **In-Memory Retention:**
-   Active alerts and cumulative traffic metrics reside in an in-memory ring buffer (up to 500 events) designed for local demonstration speed; production deployments would connect to a persistent time-series datastore.
+4. **In-Memory Retention & Polled Feed:**
+   Active alerts and cumulative traffic metrics reside in an in-memory ring buffer (up to 500 events) accessed via a polled REST feed designed for local demonstration speed; production deployments would connect to a persistent time-series datastore or streaming message broker.
+
+---
+
+## 11. Proposed Project Report Attribution Entry
+
+To ensure complete and accurate attribution in the unified course report, the following entry reflects the deliverables authored and integrated by Soham Prajapati:
+
+### Table Row Addition
+
+| Team Member | Role | Core Deliverables & Artifacts |
+|---|---|---|
+| **Soham Prajapati**<br>(`@Soham-Prajapati`) | Project Coordination & Integration | Authoritative API/data contracts (`docs/CONTRACTS.md`); complete FastAPI integration suite (`/predict`, `/analyze`, `/analyze/csv`, `/alerts`, `/statistics`, `/model-performance`); thread-safe telemetry and multi-capture state isolation; frontend integration (polled alert feed, dynamic telemetry cards, multipart CSV batch upload); contract & end-to-end regression suites (`tests/test_contracts.py`, `tests/test_e2e.py`); root `requirements.txt` and developer automation (`Makefile`); CI pipeline (`.github/workflows/ci.yml`) and repo governance (`CODEOWNERS`, `CONTRIBUTING.md`); post-hoc technical reviews of PRs #1–#5; provenance CRLF newline root cause investigation (`docs/provenance_investigation.md`); reproducible demo guide (`docs/DEMO.md`); standalone integration report (`docs/INTEGRATION_REPORT.md` & PDF). |
+
+### Report Narrative Paragraph
+
+> **Project Coordination & End-to-End Integration (Soham Prajapati):**  
+> Soham unified the individual component contributions of the team into a production-grade, reproducible software artifact on branch `integration/soham-e2e`. He established formal data and API contracts (`docs/CONTRACTS.md`), resolved the repository environment reproduction blocker by standardizing `requirements.txt` and creating automated developer targets (`Makefile`), and completed the REST API surface by implementing multipart CSV ingestion (`POST /analyze/csv`), telemetry summaries (`GET /statistics`), dynamic model performance metrics (`GET /model-performance`), and alert retrieval (`GET /alerts`). Soham connected the React single-page application to live backend telemetry via a polled alert feed, dynamic metric cards, and a drag-and-drop CSV batch upload pipeline. He implemented thread-safe state synchronization and multi-capture sliding-window isolation, expanded test coverage from 67 to 95 passed tests, authored the GitHub Actions CI pipeline and repository governance policies, identified the root cause of the provenance hash discrepancy, produced an exhaustive reproducible demonstration guide (`docs/DEMO.md`), and conducted technical reviews of all team pull requests.
