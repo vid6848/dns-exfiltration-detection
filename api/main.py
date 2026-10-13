@@ -1,6 +1,8 @@
 import csv
+from datetime import datetime, timezone
 import io
 import json
+import logging
 import os
 import time
 import uuid
@@ -447,11 +449,24 @@ async def analyze_csv(
             }
 
             if not standardized["timestamp"]:
-                # Missing timestamp policy: fallback to previous row or current time
+                # Missing timestamp policy (CONTRACTS.md §3):
+                # Fallback to previous valid row, else server ingestion timestamp in UTC, plus a logged warning
                 if parsed_queries:
                     standardized["timestamp"] = str(parsed_queries[-1]["record"].timestamp)
+                    logging.warning(
+                        "Row %d in capture '%s' missing timestamp; falling back to previous valid row timestamp: %s",
+                        index + 1,
+                        effective_capture_id,
+                        standardized["timestamp"],
+                    )
                 else:
-                    standardized["timestamp"] = "2026-10-12 00:00:00.000"
+                    standardized["timestamp"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                    logging.warning(
+                        "Row %d in capture '%s' missing timestamp; falling back to server ingestion time (UTC): %s",
+                        index + 1,
+                        effective_capture_id,
+                        standardized["timestamp"],
+                    )
 
             raw_record = pipeline.parse_csv_row_to_raw_record(standardized)
             record = pipeline.normalize_and_parse_record(raw_record)
