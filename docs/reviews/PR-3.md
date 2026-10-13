@@ -21,12 +21,12 @@ PR #3 added empirical evaluation and benchmarking between the statistical baseli
 
 ## 3. Concrete Issues & Code References
 1. **Source Hash Mismatch Uninvestigated:**
-   - In `scripts/evaluate_baseline_vs_rf.py` and the evaluation report, Harshul noted that `source_hashes_match = false` was observed during script execution, but left the root cause uninvestigated ("cause remains unresolved").
-2. **Missing Direct REST Integration Endpoint:**
-   - The metrics generated in `evaluation/results/baseline_vs_rf_v1/baseline_vs_rf_metrics.json` were left on disk as static JSON, without a corresponding backend API endpoint (`GET /model-performance`) to serve them dynamically to the frontend dashboard.
-3. **Hardware Latency Caveat:**
-   - Latency benchmarks were run locally on a Windows development laptop using only 5 measured repetitions for p95 latency, which introduces platform-specific variance.
+   - In `scripts/evaluate_baseline_vs_rf.py` and `evaluation/results/baseline_vs_rf_v1/evaluation_report.md`, Harshul noted that `source_hashes_match = false` was observed during script execution, but left the root cause uninvestigated ("cause remains unresolved").
+2. **Hardware Latency Benchmarking Sample Size:**
+   - In `scripts/benchmark_evaluation_latency.py:34`, `END_TO_END_REPEATS = 5` was configured for measuring end-to-end latency on a local Windows laptop. While adequate for internal benchmarking, small repetition samples introduce hardware-dependent variance for tail latency metrics ($p95$).
+3. **Absence of Evaluation Script Unit Tests:**
+   - PR #3 added evaluation and latency benchmarking CLI scripts under `scripts/`, but did not add corresponding automated unit tests under `tests/` (e.g. verifying heuristic metric parsing or baseline indicator threshold evaluation against a synthetic test fixture).
 
 ## 4. Downstream Integration Impact & Resolution
-- In `integration/soham-e2e`, I resolved the mystery behind `source_hashes_match = false` (Windows CRLF vs Linux/macOS LF git checkout discrepancy, documented in `docs/provenance_investigation.md`).
-- Built the `GET /model-performance` endpoint in the API to expose these verified evaluation metrics, and updated the React frontend (`OfflineModelPerformance.jsx`) to consume it directly.
+- In `integration/soham-e2e`, I resolved the underlying cause of `source_hashes_match = false` (Windows CRLF vs Linux/macOS LF git checkout discrepancy, documented in `docs/provenance_investigation.md`).
+- As part of the API integration layer, I implemented `GET /model-performance` in the FastAPI backend to dynamically expose Harshul's verified evaluation metrics (`baseline_vs_rf_metrics.json`) to the frontend dashboard (`OfflineModelPerformance.jsx`), keeping data consumption live and verifiable.

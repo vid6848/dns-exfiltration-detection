@@ -19,7 +19,7 @@ PR #4 introduced the initial FastAPI web service in `api/main.py`:
 
 ## 3. Concrete Issues & Code References (Verified)
 1. **Recreation of Behavioral Extractor Per Query Inside `/analyze` (Bug Confirmed):**
-   - In `api/main.py:139-142` of PR #4:
+   - In `api/main.py:144-147` of PR #4:
      ```python
      for query in batch.queries:
          ...

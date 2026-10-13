@@ -22,7 +22,7 @@ PR #1 delivered the synthetic attack dataset generation engine and initial datas
 
 ## 3. Concrete Issues & Code References
 1. **Schema Column Name Discrepancies:**
-   - In `data/generate_synthetic_exfiltration.py:27-38`, columns are generated with names like `dns_query_length`, `dns_query_entropy`, `dns_subdomain_count`, `dns_numerical_ratio`.
+   - In `data/generate_synthetic_exfiltration.py:31-42`, columns are generated with names like `dns_query_length`, `dns_query_entropy`, `dns_subdomain_count`, `dns_numerical_ratio`.
    - Downstream, Yash's canonical preprocessing (`src/preprocessing/schema.py`) and Hero's feature extractors (`src/features/per_query.py`) use standard names (`requested_server_name`, `query_length`, `entropy`, `digit_ratio`, `subdomain_length`). Preprocessing had to normalize or drop these synthetic-only columns to avoid conflicting feature definitions.
 2. **Missing Unit Tests:**
    - While `data/validate_synthetic.py` performs CLI dataset integrity validation, no automated `pytest` suite was committed with PR #1 to test the generation script functions (`compute_shannon_entropy`, `compute_features`) against regression.
