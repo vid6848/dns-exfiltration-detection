@@ -1,10 +1,14 @@
-
+import csv
+import io
+import json
 import os
+import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -21,6 +25,13 @@ MODEL_PATH = (
     / "aws_benign_expansion_v0.1"
     / "random_forest.joblib"
 )
+METRICS_PATH = (
+    PROJECT_ROOT
+    / "evaluation"
+    / "results"
+    / "baseline_vs_rf_v1"
+    / "baseline_vs_rf_metrics.json"
+)
 
 DEFAULT_CORS_ORIGINS = [
     "http://localhost:3000",
@@ -28,6 +39,62 @@ DEFAULT_CORS_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
+MAX_CSV_BYTES = 15 * 1024 * 1024  # 15 MB
+MAX_CSV_ROWS = 20000
+
+
+class AppStateStore:
+    """Thread-safe in-memory store for real processed query events and alerts."""
+
+    def __init__(self, max_alerts: int = 500):
+        self.max_alerts = max_alerts
+        self.total_processed: int = 0
+        self.total_suspicious: int = 0
+        self.total_benign: int = 0
+        self.alerts: List[Dict[str, Any]] = []
+        self.capture_extractors: Dict[str, BehavioralFeatureExtractor] = {}
+
+    def get_capture_extractor(self, capture_id: str) -> BehavioralFeatureExtractor:
+        if capture_id not in self.capture_extractors:
+            self.capture_extractors[capture_id] = BehavioralFeatureExtractor(
+                window_seconds=60.0
+            )
+        return self.capture_extractors[capture_id]
+
+    def record_prediction(
+        self,
+        record: Any,
+        label: int,
+        attack_score: float,
+        threshold: float,
+        risk_label: str,
+        rule_indicators: Dict[str, bool],
+        capture_id: str,
+    ) -> Optional[str]:
+        self.total_processed += 1
+        alert_id = None
+        if label == 1:
+            self.total_suspicious += 1
+            alert_id = f"alt_{uuid.uuid4().hex[:12]}"
+            alert_entry = {
+                "alert_id": alert_id,
+                "timestamp": str(record.timestamp),
+                "requested_server_name": str(record.requested_server_name),
+                "src_ip": str(record.src_ip),
+                "dst_ip": str(record.dst_ip),
+                "risk_label": risk_label,
+                "attack_score": float(attack_score),
+                "decision_threshold": float(threshold),
+                "rule_indicators": rule_indicators,
+                "capture_id": capture_id,
+            }
+            self.alerts.insert(0, alert_entry)
+            if len(self.alerts) > self.max_alerts:
+                self.alerts.pop()
+        else:
+            self.total_benign += 1
+        return alert_id
 
 
 class DNSQuery(BaseModel):
@@ -37,10 +104,33 @@ class DNSQuery(BaseModel):
     requested_server_name: str = Field(min_length=1)
     query_type: str = "A"
     source: str = "CyberTrace API"
+    capture_id: Optional[str] = "default"
 
 
 class BatchDNSQuery(BaseModel):
     queries: List[DNSQuery] = Field(min_length=1, max_length=1000)
+    capture_id: Optional[str] = None
+
+
+def compute_risk_label(attack_score: float, threshold: float) -> str:
+    if attack_score >= threshold:
+        return "CRITICAL"
+    if attack_score >= 0.80:
+        return "HIGH"
+    if attack_score >= 0.50:
+        return "MEDIUM"
+    return "LOW"
+
+
+def compute_rule_indicators(features: Dict[str, Any]) -> Dict[str, bool]:
+    return {
+        "high_entropy": bool(features.get("entropy", 0.0) >= 4.0),
+        "long_subdomain": bool(features.get("subdomain_length", 0) >= 25),
+        "burst_frequency": bool(features.get("query_frequency", 1.0) >= 10.0),
+        "rapid_interval": bool(
+            0.0 <= features.get("time_interval", -1.0) <= 2.0
+        ),
+    }
 
 
 @asynccontextmanager
@@ -48,12 +138,12 @@ async def lifespan(app: FastAPI):
     if not MODEL_PATH.is_file():
         raise RuntimeError(f"Model artifact not found: {MODEL_PATH}")
 
-    # Load the trusted model bundle once at startup.
     app.state.model_bundle = load_model(MODEL_PATH)
     app.state.pipeline = PreprocessingPipeline(check_duplicates=False)
     app.state.behavioral_extractor = BehavioralFeatureExtractor(
         window_seconds=60.0
     )
+    app.state.store = AppStateStore()
 
     yield
 
@@ -65,7 +155,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS: read from CORS_ORIGINS or default to local dev origins
 cors_origins_env = os.getenv("CORS_ORIGINS", "")
 if cors_origins_env.strip():
     allowed_origins = [
@@ -105,40 +194,58 @@ def health():
 def predict_dns_query(query: DNSQuery):
     try:
         pipeline = app.state.pipeline
+        capture_id = query.capture_id or "default"
 
-        # Convert the request into the project's existing record format.
         raw_record = pipeline.parse_csv_row_to_raw_record(
             query.model_dump()
         )
         record = pipeline.normalize_and_parse_record(raw_record)
 
-        # Generate the seven structural features.
         features = extract_per_query_features(record)
 
-        # Generate the three behavioural features.
-        behavioral_features = (
-            app.state.behavioral_extractor.extract(record)
-        )
+        # Retrieve capture-isolated behavioral extractor
+        extractor = app.state.store.get_capture_extractor(capture_id)
+        behavioral_features = extractor.extract(record)
         features.update(behavioral_features)
 
-        # Use the saved feature order and decision threshold.
         predictions, probabilities = predict_features(
             app.state.model_bundle,
             [features],
         )
 
         probability = float(probabilities[0])
-        is_suspicious = bool(predictions[0])
+        label = int(predictions[0])
+        is_suspicious = bool(label == 1)
+        threshold = float(app.state.model_bundle["decision_threshold"])
+        risk_label = compute_risk_label(probability, threshold)
+        indicators = compute_rule_indicators(features)
+
+        alert_id = app.state.store.record_prediction(
+            record=record,
+            label=label,
+            attack_score=probability,
+            threshold=threshold,
+            risk_label=risk_label,
+            rule_indicators=indicators,
+            capture_id=capture_id,
+        )
 
         return {
-            "prediction": (
-                "suspicious" if is_suspicious else "benign"
-            ),
-            "label": int(predictions[0]),
+            "prediction": "suspicious" if is_suspicious else "benign",
+            "label": label,
+            "attack_score": probability,
             "attack_probability": probability,
-            "decision_threshold": float(
-                app.state.model_bundle["decision_threshold"]
-            ),
+            "threshold": threshold,
+            "decision_threshold": threshold,
+            "risk_label": risk_label,
+            "rule_indicators": indicators,
+            "alert_id": alert_id,
+            "model_identity": {
+                "artifact": "artifacts/aws_benign_expansion_v0.1/random_forest.joblib",
+                "trees": 150,
+                "features": 10,
+                "diagnostic_label": "Diagnostic Development Evaluation (Outer Fold 5)",
+            },
         }
 
     except ValueError as exc:
@@ -152,8 +259,8 @@ def predict_dns_query(query: DNSQuery):
 def analyze_dns_queries(batch: BatchDNSQuery):
     try:
         pipeline = app.state.pipeline
+        batch_capture_id = batch.capture_id or f"batch_{uuid.uuid4().hex[:8]}"
 
-        # Parse and normalize each query with its original index
         parsed_queries = []
         for index, query in enumerate(batch.queries):
             raw_record = pipeline.parse_csv_row_to_raw_record(
@@ -168,19 +275,14 @@ def analyze_dns_queries(batch: BatchDNSQuery):
                 "structural_features": structural_features,
             })
 
-        # Sort chronologically by epoch_time so the single extractor
-        # receives queries in temporal sequence per (src_ip, apex_domain) group.
-        # Stable sort preserves input order for identical timestamps.
         chronological_queries = sorted(
             parsed_queries,
             key=lambda item: float(item["record"].epoch_time),
         )
 
-        # Single batch-scoped extractor so behavioral history accumulates
-        # across relevant queries within the sliding window.
+        # Dedicated batch extractor for isolated batch history
         behavioral_extractor = BehavioralFeatureExtractor(window_seconds=60.0)
 
-        # Extract behavioral features in chronological order
         features_by_index = {}
         for item in chronological_queries:
             behavioral_features = behavioral_extractor.extract(item["record"])
@@ -188,37 +290,48 @@ def analyze_dns_queries(batch: BatchDNSQuery):
             combined.update(behavioral_features)
             features_by_index[item["index"]] = combined
 
-        # Restore original query input order
         ordered_feature_rows = [
             features_by_index[i] for i in range(len(batch.queries))
         ]
 
-        # Predict all independently constructed feature rows in original order
         predictions, probabilities = predict_features(
             app.state.model_bundle,
             ordered_feature_rows,
         )
 
-        threshold = float(
-            app.state.model_bundle["decision_threshold"]
-        )
+        threshold = float(app.state.model_bundle["decision_threshold"])
 
         results = []
         for index, query in enumerate(batch.queries):
             probability = float(probabilities[index])
             label = int(predictions[index])
+            risk_label = compute_risk_label(probability, threshold)
+            indicators = compute_rule_indicators(ordered_feature_rows[index])
+
+            alert_id = app.state.store.record_prediction(
+                record=parsed_queries[index]["record"],
+                label=label,
+                attack_score=probability,
+                threshold=threshold,
+                risk_label=risk_label,
+                rule_indicators=indicators,
+                capture_id=query.capture_id or batch_capture_id,
+            )
 
             results.append({
                 "requested_server_name": query.requested_server_name,
                 "prediction": "suspicious" if label else "benign",
                 "label": label,
+                "attack_score": probability,
                 "attack_probability": probability,
+                "threshold": threshold,
                 "decision_threshold": threshold,
+                "risk_label": risk_label,
+                "rule_indicators": indicators,
+                "alert_id": alert_id,
             })
 
-        suspicious_count = sum(
-            result["label"] == 1 for result in results
-        )
+        suspicious_count = sum(result["label"] == 1 for result in results)
 
         return {
             "total_queries": len(results),
@@ -232,3 +345,231 @@ def analyze_dns_queries(batch: BatchDNSQuery):
             status_code=422,
             detail=str(exc),
         ) from exc
+
+
+@app.post("/analyze/csv")
+async def analyze_csv(
+    file: UploadFile = File(...),
+    capture_id: Optional[str] = Form(None),
+):
+    """Multipart CSV batch analysis endpoint with canonical pipeline parsing and chronological sorting."""
+    content = await file.read()
+    if len(content) > MAX_CSV_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV file exceeds maximum size limit of {MAX_CSV_BYTES // (1024 * 1024)}MB",
+        )
+
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            text = content.decode("latin-1")
+        except Exception as exc:
+            raise HTTPException(
+                status_code=400,
+                detail="Unable to decode CSV file contents as UTF-8 or Latin-1",
+            ) from exc
+
+    stream = io.StringIO(text)
+    reader = csv.DictReader(stream)
+    if not reader.fieldnames:
+        raise HTTPException(status_code=400, detail="Uploaded CSV file is empty or missing headers")
+
+    rows = list(reader)
+    if not rows:
+        raise HTTPException(status_code=400, detail="CSV file contains no data rows")
+
+    if len(rows) > MAX_CSV_ROWS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV row count {len(rows)} exceeds maximum limit of {MAX_CSV_ROWS} rows",
+        )
+
+    # Validate header fields or aliases
+    field_map = {}
+    for col in reader.fieldnames:
+        clean_col = col.strip()
+        field_map[clean_col] = clean_col
+
+    req_name_col = None
+    for cand in ["requested_server_name", "query", "domain"]:
+        if cand in field_map:
+            req_name_col = cand
+            break
+
+    if not req_name_col:
+        raise HTTPException(
+            status_code=400,
+            detail="CSV missing required domain column ('requested_server_name', 'query', or 'domain')",
+        )
+
+    effective_capture_id = capture_id or file.filename or f"csv_{uuid.uuid4().hex[:8]}"
+    pipeline = app.state.pipeline
+
+    parsed_queries = []
+    invalid_rows = []
+
+    for index, row in enumerate(rows):
+        try:
+            standardized = {
+                "timestamp": row.get("timestamp", "").strip(),
+                "src_ip": row.get("src_ip", "").strip() or "127.0.0.1",
+                "dst_ip": row.get("dst_ip", "").strip() or "8.8.8.8",
+                "requested_server_name": row.get(req_name_col, "").strip(),
+                "query_type": row.get("query_type", "A").strip() or "A",
+                "source": row.get("source", "CSV Upload").strip() or "CSV Upload",
+            }
+
+            if not standardized["timestamp"]:
+                # Missing timestamp policy: fallback to previous row or current time
+                if parsed_queries:
+                    standardized["timestamp"] = str(parsed_queries[-1]["record"].timestamp)
+                else:
+                    standardized["timestamp"] = "2026-10-12 00:00:00.000"
+
+            raw_record = pipeline.parse_csv_row_to_raw_record(standardized)
+            record = pipeline.normalize_and_parse_record(raw_record)
+            structural_features = extract_per_query_features(record)
+
+            parsed_queries.append({
+                "index": index,
+                "record": record,
+                "structural_features": structural_features,
+            })
+        except Exception as exc:
+            invalid_rows.append({"row": index + 1, "error": str(exc)})
+
+    if not parsed_queries:
+        raise HTTPException(
+            status_code=422,
+            detail=f"All rows in CSV were invalid. Errors: {invalid_rows[:5]}",
+        )
+
+    # Sort valid rows chronologically
+    chronological_queries = sorted(
+        parsed_queries,
+        key=lambda item: float(item["record"].epoch_time),
+    )
+
+    # Single capture-isolated behavioral extractor for this upload
+    behavioral_extractor = BehavioralFeatureExtractor(window_seconds=60.0)
+
+    features_by_index = {}
+    for item in chronological_queries:
+        behavioral_features = behavioral_extractor.extract(item["record"])
+        combined = dict(item["structural_features"])
+        combined.update(behavioral_features)
+        features_by_index[item["index"]] = combined
+
+    ordered_feature_rows = [
+        features_by_index[item["index"]] for item in parsed_queries
+    ]
+
+    predictions, probabilities = predict_features(
+        app.state.model_bundle,
+        ordered_feature_rows,
+    )
+
+    threshold = float(app.state.model_bundle["decision_threshold"])
+
+    results = []
+    for i, item in enumerate(parsed_queries):
+        probability = float(probabilities[i])
+        label = int(predictions[i])
+        risk_label = compute_risk_label(probability, threshold)
+        indicators = compute_rule_indicators(ordered_feature_rows[i])
+
+        alert_id = app.state.store.record_prediction(
+            record=item["record"],
+            label=label,
+            attack_score=probability,
+            threshold=threshold,
+            risk_label=risk_label,
+            rule_indicators=indicators,
+            capture_id=effective_capture_id,
+        )
+
+        results.append({
+            "requested_server_name": str(item["record"].requested_server_name),
+            "prediction": "suspicious" if label else "benign",
+            "label": label,
+            "attack_score": probability,
+            "attack_probability": probability,
+            "threshold": threshold,
+            "decision_threshold": threshold,
+            "risk_label": risk_label,
+            "rule_indicators": indicators,
+            "alert_id": alert_id,
+        })
+
+    suspicious_count = sum(r["label"] == 1 for r in results)
+
+    return {
+        "capture_id": effective_capture_id,
+        "total_queries": len(results),
+        "suspicious_queries": suspicious_count,
+        "benign_queries": len(results) - suspicious_count,
+        "invalid_rows_skipped": len(invalid_rows),
+        "results": results,
+    }
+
+
+@app.get("/alerts")
+def get_alerts(limit: int = 50):
+    """Retrieve suspicious events from processed records in reverse chronological order."""
+    alerts = app.state.store.alerts[:limit]
+    return {
+        "count": len(alerts),
+        "alerts": alerts,
+    }
+
+
+@app.get("/statistics")
+def get_statistics():
+    """Retrieve actual cumulative traffic and detection counts derived from processed queries."""
+    store = app.state.store
+    total = store.total_processed
+    suspicious = store.total_suspicious
+    benign = store.total_benign
+    suspicious_rate = float(suspicious / total) if total > 0 else 0.0
+
+    return {
+        "total_processed": total,
+        "total_suspicious": suspicious,
+        "total_benign": benign,
+        "suspicious_rate": suspicious_rate,
+        "active_alerts_retained": len(store.alerts),
+        "has_live_data": bool(total > 0),
+    }
+
+
+@app.get("/model-performance")
+def get_model_performance():
+    """Return model performance metrics derived from baseline vs RF benchmark JSON."""
+    if not METRICS_PATH.is_file():
+        raise HTTPException(
+            status_code=500,
+            detail=f"Evaluation metrics file not found: {METRICS_PATH}",
+        )
+
+    try:
+        metrics_data = json.loads(METRICS_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to load evaluation metrics: {exc}",
+        ) from exc
+
+    return {
+        "diagnostic_label": "diagnostic/development evaluation, not independent final test",
+        "model_artifact": "artifacts/aws_benign_expansion_v0.1/random_forest.joblib",
+        "decision_threshold": 0.89,
+        "evaluation_records": metrics_data.get("evaluation_records", 45240),
+        "random_forest": metrics_data.get("random_forest", {}),
+        "statistical_baseline": metrics_data.get("statistical_baseline", {}),
+        "scope": metrics_data.get(
+            "scope",
+            "Previously inspected diagnostic development evaluation. Not an independent final test or proof of real-world generalization.",
+        ),
+    }
