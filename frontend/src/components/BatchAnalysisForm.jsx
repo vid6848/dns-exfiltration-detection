@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { analyzeBatchQueries } from '../api/client';
+import { analyzeBatchQueries, analyzeCsvFile } from '../api/client';
 
 const SAMPLE_BATCH_QUERIES = [
   {
@@ -32,17 +32,19 @@ const SAMPLE_BATCH_QUERIES = [
   },
 ];
 
-export default function BatchAnalysisForm({ apiBaseUrl }) {
+export default function BatchAnalysisForm({ apiBaseUrl, onAnalysisCompleted }) {
+  const [activeTab, setActiveTab] = useState('json'); // 'json' or 'csv'
   const [jsonInput, setJsonInput] = useState(
     JSON.stringify({ queries: SAMPLE_BATCH_QUERIES }, null, 2)
   );
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [captureIdInput, setCaptureIdInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState('');
   const [apiError, setApiError] = useState('');
   const [result, setResult] = useState(null);
 
   const handleLoadSample = () => {
-    // Generate fresh timestamps for current run
     const now = new Date();
     const freshQueries = SAMPLE_BATCH_QUERIES.map((q, idx) => ({
       ...q,
@@ -66,18 +68,31 @@ export default function BatchAnalysisForm({ apiBaseUrl }) {
 
   const handleClear = () => {
     setJsonInput('{\n  "queries": []\n}');
+    setSelectedFile(null);
     setValidationError('');
     setApiError('');
     setResult(null);
   };
 
-  const handleSubmit = async (e) => {
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
+        setValidationError('Please select a valid .csv file.');
+        return;
+      }
+      setSelectedFile(file);
+      setValidationError('');
+      setApiError('');
+    }
+  };
+
+  const handleJsonSubmit = async (e) => {
     e.preventDefault();
     setValidationError('');
     setApiError('');
     setResult(null);
 
-    // 1. Parse JSON
     let parsedData;
     try {
       parsedData = JSON.parse(jsonInput);
@@ -86,7 +101,6 @@ export default function BatchAnalysisForm({ apiBaseUrl }) {
       return;
     }
 
-    // 2. Validate payload structure: must be { queries: [...] } or direct [...] array
     let queryList;
     if (Array.isArray(parsedData)) {
       queryList = parsedData;
@@ -99,17 +113,15 @@ export default function BatchAnalysisForm({ apiBaseUrl }) {
       return;
     }
 
-    // 3. Length validation
     if (queryList.length === 0) {
       setValidationError('Batch query list is empty. Please provide at least 1 query.');
       return;
     }
     if (queryList.length > 1000) {
-      setValidationError(`Batch query list contains ${queryList.length} items, which exceeds the maximum limit of 1000.`);
+      setValidationError(`Batch query list contains ${queryList.length} items, which exceeds the limit of 1000.`);
       return;
     }
 
-    // 4. Validate query item fields
     for (let i = 0; i < queryList.length; i++) {
       const q = queryList[i];
       if (!q || typeof q !== 'object') {
@@ -138,6 +150,34 @@ export default function BatchAnalysisForm({ apiBaseUrl }) {
     try {
       const response = await analyzeBatchQueries(queryList, apiBaseUrl);
       setResult(response);
+      if (onAnalysisCompleted) {
+        onAnalysisCompleted();
+      }
+    } catch (err) {
+      setApiError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCsvSubmit = async (e) => {
+    e.preventDefault();
+    setValidationError('');
+    setApiError('');
+    setResult(null);
+
+    if (!selectedFile) {
+      setValidationError('Please select a CSV file to upload.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await analyzeCsvFile(selectedFile, captureIdInput, apiBaseUrl);
+      setResult(response);
+      if (onAnalysisCompleted) {
+        onAnalysisCompleted();
+      }
     } catch (err) {
       setApiError(err.message);
     } finally {
@@ -149,111 +189,200 @@ export default function BatchAnalysisForm({ apiBaseUrl }) {
     <div className="card-panel" style={{ marginTop: '2rem' }}>
       <div className="section-heading">
         <h2>Batch Query Analysis</h2>
-        <span className="section-tag live">POST /analyze</span>
+        <span className="section-tag live">
+          {activeTab === 'csv' ? 'POST /analyze/csv' : 'POST /analyze'}
+        </span>
       </div>
 
       <p className="panel-description">
-        Analyze a collection of DNS queries independently. The sample includes an encoded-looking domain, but the model decides its label using its score and threshold. Sends <code>{`{ "queries": [...] }`}</code> to the backend and displays returned counts and itemized results.
+        Analyze collections of DNS queries. Supports direct JSON payload submission or multipart CSV file upload processed chronologically through the canonical pipeline.
       </p>
 
-      {/* Preset helpers */}
-      <div className="preset-bar">
-        <span className="preset-label">Batch Actions:</span>
+      {/* Tab Switcher */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
         <button
           type="button"
-          className="btn btn-sm btn-outline"
-          onClick={handleLoadSample}
-          disabled={loading}
+          className={`btn btn-sm ${activeTab === 'json' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => {
+            setActiveTab('json');
+            setValidationError('');
+            setApiError('');
+          }}
         >
-          Load Sample Batch (4 queries)
+          JSON Batch (/analyze)
         </button>
         <button
           type="button"
-          className="btn btn-sm btn-outline"
-          onClick={handleFormatJson}
-          disabled={loading}
+          className={`btn btn-sm ${activeTab === 'csv' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => {
+            setActiveTab('csv');
+            setValidationError('');
+            setApiError('');
+          }}
         >
-          Format JSON
-        </button>
-        <button
-          type="button"
-          className="btn btn-sm btn-subtle"
-          onClick={handleClear}
-          disabled={loading}
-        >
-          Clear
+          CSV File Upload (/analyze/csv)
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="batch-form">
-        <div className="form-group">
-          <label htmlFor="batch-json-editor" className="form-label">
-            Batch JSON Payload (<code>{`{ "queries": [ ... ] }`}</code>) <span className="required">*</span>
-          </label>
-          <textarea
-            id="batch-json-editor"
-            className="form-textarea font-mono"
-            rows="10"
-            value={jsonInput}
-            onChange={(e) => {
-              setJsonInput(e.target.value);
-              setValidationError('');
-              setApiError('');
-            }}
-            placeholder='{\n  "queries": [\n    {\n      "timestamp": "2026-10-12T00:00:00Z",\n      "src_ip": "192.168.1.10",\n      "dst_ip": "8.8.8.8",\n      "requested_server_name": "example.com",\n      "query_type": "A"\n    }\n  ]\n}'
-            disabled={loading}
-          />
-        </div>
-
-        {/* Validation Error Message */}
-        {validationError && (
-          <div className="alert-box warning">
-            <span className="alert-icon">⚠️</span>
-            <div className="alert-content">
-              <strong>Validation Error:</strong> {validationError}
-            </div>
+      {activeTab === 'json' ? (
+        <>
+          <div className="preset-bar">
+            <span className="preset-label">JSON Actions:</span>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline"
+              onClick={handleLoadSample}
+              disabled={loading}
+            >
+              Load Sample Batch (4 queries)
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline"
+              onClick={handleFormatJson}
+              disabled={loading}
+            >
+              Format JSON
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-subtle"
+              onClick={handleClear}
+              disabled={loading}
+            >
+              Clear
+            </button>
           </div>
-        )}
 
-        {/* API Error Message */}
-        {apiError && (
-          <div className="alert-box error">
-            <span className="alert-icon">❌</span>
-            <div className="alert-content">
-              <strong>API Error:</strong> {apiError}
+          <form onSubmit={handleJsonSubmit} className="batch-form">
+            <div className="form-group">
+              <label htmlFor="batch-json-editor" className="form-label">
+                Batch JSON Payload (<code>{`{ "queries": [ ... ] }`}</code>) <span className="required">*</span>
+              </label>
+              <textarea
+                id="batch-json-editor"
+                className="form-textarea font-mono"
+                rows="10"
+                value={jsonInput}
+                onChange={(e) => {
+                  setJsonInput(e.target.value);
+                  setValidationError('');
+                  setApiError('');
+                }}
+                disabled={loading}
+              />
             </div>
-          </div>
-        )}
 
-        <div className="form-actions">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="spinner"></span>
-                Analyzing Batch Queries...
-              </>
-            ) : (
-              'Analyze Batch (/analyze)'
+            {validationError && (
+              <div className="alert-box warning">
+                <span className="alert-icon">⚠️</span>
+                <div className="alert-content">
+                  <strong>Validation Error:</strong> {validationError}
+                </div>
+              </div>
             )}
-          </button>
-        </div>
-      </form>
 
-      {/* Batch Results Display */}
+            {apiError && (
+              <div className="alert-box error">
+                <span className="alert-icon">❌</span>
+                <div className="alert-content">
+                  <strong>API Error:</strong> {apiError}
+                </div>
+              </div>
+            )}
+
+            <div className="form-actions">
+              <button type="submit" className="btn btn-primary" disabled={loading}>
+                {loading ? (
+                  <>
+                    <span className="spinner"></span>
+                    Analyzing Batch Queries...
+                  </>
+                ) : (
+                  'Analyze Batch (/analyze)'
+                )}
+              </button>
+            </div>
+          </form>
+        </>
+      ) : (
+        <form onSubmit={handleCsvSubmit} className="batch-form">
+          <div className="form-group">
+            <label className="form-label">
+              Select CSV File (Max 15MB, 20,000 rows) <span className="required">*</span>
+            </label>
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleFileChange}
+              className="form-input"
+              disabled={loading}
+            />
+            {selectedFile && (
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.35rem' }}>
+                Selected: <strong>{selectedFile.name}</strong> ({(selectedFile.size / 1024).toFixed(1)} KB)
+              </div>
+            )}
+          </div>
+
+          <div className="form-group" style={{ maxWidth: '320px' }}>
+            <label className="form-label">
+              Capture ID (Optional grouping key)
+            </label>
+            <input
+              type="text"
+              className="form-input font-mono"
+              placeholder="e.g. pcap_capture_01"
+              value={captureIdInput}
+              onChange={(e) => setCaptureIdInput(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
+          {validationError && (
+            <div className="alert-box warning">
+              <span className="alert-icon">⚠️</span>
+              <div className="alert-content">
+                <strong>Validation Error:</strong> {validationError}
+              </div>
+            </div>
+          )}
+
+          {apiError && (
+            <div className="alert-box error">
+              <span className="alert-icon">❌</span>
+              <div className="alert-content">
+                <strong>API Error:</strong> {apiError}
+              </div>
+            </div>
+          )}
+
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={loading || !selectedFile}>
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  Uploading & Analyzing CSV...
+                </>
+              ) : (
+                'Upload & Analyze CSV (/analyze/csv)'
+              )}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Results Display */}
       {result && (
         <div className="result-container">
           <div className="result-header">
-            <h3>Batch Analysis Results</h3>
+            <h3>Analysis Results</h3>
             <span className="section-tag live">
               Evaluated {result.total_queries} {result.total_queries === 1 ? 'Query' : 'Queries'}
+              {result.capture_id ? ` (Capture: ${result.capture_id})` : ''}
             </span>
           </div>
 
-          {/* Returned Counts Grid */}
           <div className="batch-counts-grid">
             <div className="batch-count-card total">
               <span className="batch-count-label">Total Queries</span>
@@ -286,7 +415,6 @@ export default function BatchAnalysisForm({ apiBaseUrl }) {
             </div>
           </div>
 
-          {/* Returned Results Table */}
           <div className="table-container" style={{ marginTop: '1.25rem' }}>
             <table>
               <thead>
@@ -294,8 +422,8 @@ export default function BatchAnalysisForm({ apiBaseUrl }) {
                   <th style={{ width: '40px' }}>#</th>
                   <th>Requested Server Name</th>
                   <th>Prediction</th>
-                  <th>Label</th>
-                  <th>Attack score</th>
+                  <th>Attack Score</th>
+                  <th>Risk Level</th>
                   <th>Threshold</th>
                 </tr>
               </thead>
@@ -319,7 +447,6 @@ export default function BatchAnalysisForm({ apiBaseUrl }) {
                           {item.prediction === 'suspicious' ? '🚨 suspicious' : '✅ benign'}
                         </span>
                       </td>
-                      <td className="font-mono">{item.label}</td>
                       <td>
                         <span
                           className={`font-mono ${
@@ -327,14 +454,19 @@ export default function BatchAnalysisForm({ apiBaseUrl }) {
                           }`}
                           style={{ fontWeight: 600 }}
                         >
-                          {(item.attack_probability * 100).toFixed(2)}%
+                          {((item.attack_score ?? item.attack_probability) * 100).toFixed(2)}%
                         </span>
                         <span className="text-muted" style={{ fontSize: '0.75rem', marginLeft: '0.4rem' }}>
-                          ({item.attack_probability.toFixed(4)})
+                          ({(item.attack_score ?? item.attack_probability).toFixed(4)})
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`result-badge-inline ${item.risk_label === 'CRITICAL' ? 'suspicious' : 'benign'}`}>
+                          {item.risk_label || (item.prediction === 'suspicious' ? 'CRITICAL' : 'LOW')}
                         </span>
                       </td>
                       <td className="font-mono text-cyan">
-                        {item.decision_threshold.toFixed(4)}
+                        {(item.threshold ?? item.decision_threshold).toFixed(4)}
                       </td>
                     </tr>
                   ))
