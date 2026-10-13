@@ -193,7 +193,8 @@ All errors return RFC 7807 compatible JSON:
 
 ## 8. Persistence & Retention Policies
 
-- **In-Memory Store:** The CyberTrace reference API maintains an in-memory ring-buffer for alerts and telemetry:
-  - `alerts`: Max 500 most recent suspicious events (`label == 1`).
-  - `statistics`: Dynamic aggregations (`total_processed`, `total_suspicious`, `total_benign`, `last_updated`).
+- **Thread-Safe In-Memory Store (`AppStateStore`):** The CyberTrace reference API synchronizes access via a `threading.Lock` across concurrent workers:
+  - `alerts`: Max 500 most recent suspicious events (`label == 1`) in a ring buffer.
+  - `statistics`: Dynamic aggregations (`total_processed`, `total_suspicious`, `total_benign`, `suspicious_rate`).
+  - `capture_extractors`: Bounded Least-Recently-Used (LRU) cache capped at 256 active capture instances (`OrderedDict` with LRU eviction). When the 257th unique `capture_id` is received, the oldest idle extractor is evicted to prevent unbounded memory growth.
 - **No Hardcoded Values:** `/statistics` and `/alerts` strictly derive all metrics from actual processed records.
