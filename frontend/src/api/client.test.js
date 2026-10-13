@@ -5,6 +5,10 @@ import {
   checkApiHealth,
   predictSingleQuery,
   analyzeBatchQueries,
+  analyzeCsvFile,
+  fetchLiveAlerts,
+  fetchLiveStatistics,
+  fetchModelPerformance,
 } from './client.js';
 
 describe('API Client Tests', () => {
@@ -67,8 +71,11 @@ describe('API Client Tests', () => {
             json: async () => ({
               prediction: 'suspicious',
               label: 1,
+              attack_score: 0.992,
               attack_probability: 0.992,
+              threshold: 0.89,
               decision_threshold: 0.89,
+              risk_label: 'CRITICAL',
             }),
           };
         };
@@ -88,6 +95,7 @@ describe('API Client Tests', () => {
         assert.equal(sentBody.source, 'CyberTrace Dashboard');
         assert.equal(result.prediction, 'suspicious');
         assert.equal(result.label, 1);
+        assert.equal(result.risk_label, 'CRITICAL');
       } finally {
         globalThis.fetch = originalFetch;
       }
@@ -137,15 +145,15 @@ describe('API Client Tests', () => {
                   requested_server_name: 'google.com',
                   prediction: 'benign',
                   label: 0,
-                  attack_probability: 0.0001,
-                  decision_threshold: 0.89,
+                  attack_score: 0.0001,
+                  threshold: 0.89,
                 },
                 {
                   requested_server_name: 'bad.tunnel.net',
                   prediction: 'suspicious',
                   label: 1,
-                  attack_probability: 0.95,
-                  decision_threshold: 0.89,
+                  attack_score: 0.95,
+                  threshold: 0.89,
                 },
               ],
             }),
@@ -174,6 +182,77 @@ describe('API Client Tests', () => {
         assert.equal(response.total_queries, 2);
         assert.equal(response.suspicious_queries, 1);
         assert.equal(response.results.length, 2);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+  });
+
+  describe('analyzeCsvFile', () => {
+    it('posts FormData to /analyze/csv and returns batch report', async () => {
+      const originalFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = async (url, options) => {
+          assert.equal(url, '/analyze/csv');
+          assert.equal(options.method, 'POST');
+          assert.ok(options.body instanceof FormData);
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              capture_id: 'cap_01',
+              total_queries: 10,
+              suspicious_queries: 2,
+              benign_queries: 8,
+              results: [],
+            }),
+          };
+        };
+
+        const dummyFile = new Blob(['timestamp,src_ip,dst_ip,requested_server_name\n'], { type: 'text/csv' });
+        const res = await analyzeCsvFile(dummyFile, 'cap_01', '');
+        assert.equal(res.capture_id, 'cap_01');
+        assert.equal(res.total_queries, 10);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+  });
+
+  describe('fetchLiveAlerts and fetchLiveStatistics', () => {
+    it('fetches alerts list and statistics correctly', async () => {
+      const originalFetch = globalThis.fetch;
+      try {
+        globalThis.fetch = async (url) => {
+          if (url.includes('/alerts')) {
+            return {
+              ok: true,
+              json: async () => ({ count: 1, alerts: [{ alert_id: 'alt_1' }] }),
+            };
+          }
+          if (url.includes('/statistics')) {
+            return {
+              ok: true,
+              json: async () => ({ total_processed: 5, total_suspicious: 1, total_benign: 4 }),
+            };
+          }
+          if (url.includes('/model-performance')) {
+            return {
+              ok: true,
+              json: async () => ({ decision_threshold: 0.89, diagnostic_label: 'diagnostic' }),
+            };
+          }
+          throw new Error('Unknown url');
+        };
+
+        const alertsRes = await fetchLiveAlerts(10, '');
+        assert.equal(alertsRes.count, 1);
+
+        const statsRes = await fetchLiveStatistics('');
+        assert.equal(statsRes.total_processed, 5);
+
+        const perfRes = await fetchModelPerformance('');
+        assert.equal(perfRes.decision_threshold, 0.89);
       } finally {
         globalThis.fetch = originalFetch;
       }

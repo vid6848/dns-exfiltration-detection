@@ -1,15 +1,18 @@
 /**
  * API client for CyberTrace DNS Exfiltration Detection API (FastAPI)
- * Based on Pranay's PR #4 API contract:
- * - POST /predict: Single DNSQuery -> { prediction, label, attack_probability, decision_threshold }
- * - POST /analyze: BatchDNSQuery ({ queries: [...] }) -> { total_queries, suspicious_queries, benign_queries, results: [...] }
- * - GET  /health:  Health status -> { status, model_loaded }
+ * Implements the authoritative API contract defined in docs/CONTRACTS.md:
+ * - POST /predict: Single DNSQuery -> { prediction, label, attack_score, threshold, risk_label, ... }
+ * - POST /analyze: BatchDNSQuery -> { total_queries, suspicious_queries, benign_queries, results: [...] }
+ * - POST /analyze/csv: Multipart CSV file upload -> { capture_id, total_queries, suspicious_queries, results: [...] }
+ * - GET  /alerts: List of suspicious events from processed queries -> { count, alerts: [...] }
+ * - GET  /statistics: Real cumulative telemetry counts -> { total_processed, total_suspicious, total_benign, ... }
+ * - GET  /model-performance: Diagnostic model metrics -> { random_forest, statistical_baseline, decision_threshold, ... }
+ * - GET  /health: Health status -> { status, model_loaded }
  */
 
-// Default to empty string so requests go through the local Vite dev proxy by default
 export const DEFAULT_API_BASE_URL = '';
 
-function buildEndpointUrl(path, baseUrl = DEFAULT_API_BASE_URL) {
+export function buildEndpointUrl(path, baseUrl = DEFAULT_API_BASE_URL) {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   if (!baseUrl || !baseUrl.trim()) {
     return cleanPath;
@@ -17,7 +20,7 @@ function buildEndpointUrl(path, baseUrl = DEFAULT_API_BASE_URL) {
   return `${baseUrl.trim().replace(/\/$/, '')}${cleanPath}`;
 }
 
-function formatErrorMessage(error, endpoint) {
+export function formatErrorMessage(error, endpoint) {
   if (error instanceof TypeError && error.message.includes('fetch')) {
     return `Failed to connect to API endpoint (${endpoint}). Ensure the FastAPI server is running on http://127.0.0.1:8000.`;
   }
@@ -47,6 +50,7 @@ export async function predictSingleQuery(query, baseUrl = DEFAULT_API_BASE_URL) 
     requested_server_name: query.requested_server_name?.trim() || '',
     query_type: query.query_type?.trim() || 'A',
     source: query.source?.trim() || 'CyberTrace Dashboard',
+    capture_id: query.capture_id?.trim() || 'default',
   };
 
   try {
@@ -88,14 +92,11 @@ export async function analyzeBatchQueries(queries, baseUrl = DEFAULT_API_BASE_UR
       src_ip: q.src_ip?.trim() || '',
       dst_ip: q.dst_ip?.trim() || '',
       requested_server_name: q.requested_server_name?.trim() || '',
-      query_type: query_type(q),
+      query_type: q.query_type?.trim() || 'A',
       source: q.source?.trim() || 'CyberTrace Dashboard',
+      capture_id: q.capture_id?.trim() || undefined,
     })),
   };
-
-  function query_type(q) {
-    return q.query_type?.trim() || 'A';
-  }
 
   try {
     const res = await fetch(url, {
@@ -121,6 +122,80 @@ export async function analyzeBatchQueries(queries, baseUrl = DEFAULT_API_BASE_UR
       throw new Error(detailMsg);
     }
 
+    return await res.json();
+  } catch (err) {
+    throw new Error(formatErrorMessage(err, url));
+  }
+}
+
+export async function analyzeCsvFile(file, captureId = '', baseUrl = DEFAULT_API_BASE_URL) {
+  const url = buildEndpointUrl('/analyze/csv', baseUrl);
+  const formData = new FormData();
+  formData.append('file', file);
+  if (captureId && captureId.trim()) {
+    formData.append('capture_id', captureId.trim());
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      let detailMsg = `HTTP ${res.status} ${res.statusText}`;
+      try {
+        const errJson = await res.json();
+        if (errJson.detail) {
+          detailMsg = typeof errJson.detail === 'string'
+            ? errJson.detail
+            : JSON.stringify(errJson.detail);
+        }
+      } catch {
+        // Non-JSON response
+      }
+      throw new Error(detailMsg);
+    }
+
+    return await res.json();
+  } catch (err) {
+    throw new Error(formatErrorMessage(err, url));
+  }
+}
+
+export async function fetchLiveAlerts(limit = 50, baseUrl = DEFAULT_API_BASE_URL) {
+  const url = buildEndpointUrl(`/alerts?limit=${limit}`, baseUrl);
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    return await res.json();
+  } catch (err) {
+    throw new Error(formatErrorMessage(err, url));
+  }
+}
+
+export async function fetchLiveStatistics(baseUrl = DEFAULT_API_BASE_URL) {
+  const url = buildEndpointUrl('/statistics', baseUrl);
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    return await res.json();
+  } catch (err) {
+    throw new Error(formatErrorMessage(err, url));
+  }
+}
+
+export async function fetchModelPerformance(baseUrl = DEFAULT_API_BASE_URL) {
+  const url = buildEndpointUrl('/model-performance', baseUrl);
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
     return await res.json();
   } catch (err) {
     throw new Error(formatErrorMessage(err, url));
