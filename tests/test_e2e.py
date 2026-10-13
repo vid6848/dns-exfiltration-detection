@@ -132,6 +132,32 @@ def test_e2e_csv_upload_valid_flow(client):
     assert data["results"][1]["requested_server_name"] == "google.com"
 
 
+def test_e2e_csv_upload_missing_timestamp_fallback(client, caplog):
+    """Test CSV upload missing timestamp fallback (previous valid row or server ingestion time) with logged warnings."""
+    import logging
+    csv_missing_timestamps = """timestamp,src_ip,dst_ip,requested_server_name,query_type
+,10.0.1.5,8.8.8.8,first-no-time.com,A
+2026-10-12 14:00:00.000,10.0.1.5,8.8.8.8,second-valid.com,A
+,10.0.1.5,8.8.8.8,third-fallback-prev.com,A
+"""
+    with caplog.at_level(logging.WARNING):
+        file_payload = ("missing_ts.csv", io.BytesIO(csv_missing_timestamps.encode("utf-8")), "text/csv")
+        response = client.post(
+            "/analyze/csv",
+            files={"file": file_payload},
+            data={"capture_id": "test_fallback_cap"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_queries"] == 3
+        assert data["invalid_rows_skipped"] == 0
+
+        # Check logged warnings
+        warnings = [record.message for record in caplog.records if record.levelno == logging.WARNING]
+        assert any("server ingestion time" in w for w in warnings)
+        assert any("previous valid row timestamp" in w for w in warnings)
+
+
 def test_e2e_csv_upload_malformed_and_missing_headers(client):
     """Test CSV error handling for missing domain headers and empty files."""
     # Missing required domain header
