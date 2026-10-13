@@ -237,6 +237,37 @@ def test_app_state_store_lock_and_lru_bounding():
     assert list(store.capture_extractors.keys()) == ["cap_3", "cap_1", "cap_4"]
 
 
+def test_predict_model_identity_dynamic(client):
+    """Verify that /predict returns dynamic model_identity reflecting loaded bundle."""
+    payload = {
+        "timestamp": "2026-10-12 12:00:00.000",
+        "src_ip": "192.168.1.100",
+        "dst_ip": "8.8.8.8",
+        "requested_server_name": "example.com",
+    }
+    res = client.post("/predict", json=payload)
+    assert res.status_code == 200
+    ident = res.json()["model_identity"]
+    assert ident["trees"] == 150
+    assert ident["features"] == 10
+    assert "random_forest.joblib" in ident["artifact"]
+
+
+def test_alerts_limit_query_validation(client):
+    """Verify that /alerts limit parameter validates bounds (1 <= limit <= 500)."""
+    # Valid limit
+    r_valid = client.get("/alerts?limit=25")
+    assert r_valid.status_code == 200
+
+    # Limit too small (ge=1)
+    r_zero = client.get("/alerts?limit=0")
+    assert r_zero.status_code == 422
+
+    # Limit too large (le=500)
+    r_large = client.get("/alerts?limit=501")
+    assert r_large.status_code == 422
+
+
 def test_error_status_codes_and_validation(client):
     """Verify that invalid payloads return standard HTTP 422 errors."""
     res = client.post("/predict", json={"src_ip": "10.0.0.1"})

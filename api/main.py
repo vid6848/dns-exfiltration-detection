@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -289,6 +289,10 @@ def predict_dns_query(query: DNSQuery):
             capture_id=capture_id,
         )
 
+        bundle = app.state.model_bundle
+        model_obj = bundle.get("model")
+        tree_count = getattr(model_obj, "n_estimators", len(getattr(model_obj, "estimators_", [])))
+
         return {
             "prediction": "suspicious" if is_suspicious else "benign",
             "label": label,
@@ -300,9 +304,9 @@ def predict_dns_query(query: DNSQuery):
             "rule_indicators": indicators,
             "alert_id": alert_id,
             "model_identity": {
-                "artifact": "artifacts/aws_benign_expansion_v0.1/random_forest.joblib",
-                "trees": 150,
-                "features": 10,
+                "artifact": str(MODEL_PATH.relative_to(PROJECT_ROOT)).replace("\\", "/"),
+                "trees": int(tree_count),
+                "features": len(bundle.get("feature_order", [])),
                 "diagnostic_label": "Diagnostic Development Evaluation (Outer Fold 5)",
             },
         }
@@ -588,7 +592,7 @@ async def analyze_csv(
 
 
 @app.get("/alerts")
-def get_alerts(limit: int = 50):
+def get_alerts(limit: int = Query(50, ge=1, le=500)):
     """Retrieve suspicious events from processed records in reverse chronological order."""
     alerts = app.state.store.get_alerts(limit=limit)
     return {
@@ -605,7 +609,7 @@ def get_statistics():
 
 @app.get("/model-performance")
 def get_model_performance():
-    """Return model performance metrics derived from baseline vs RF benchmark JSON."""
+    """Return model performance metrics derived from baseline vs RF benchmark JSON and loaded bundle."""
     if not METRICS_PATH.is_file():
         raise HTTPException(
             status_code=500,
@@ -620,10 +624,23 @@ def get_model_performance():
             detail=f"Failed to load evaluation metrics: {exc}",
         ) from exc
 
+    # Read decision_threshold and model_artifact from metrics JSON, fallback to loaded bundle
+    decision_threshold = float(
+        metrics_data.get(
+            "decision_threshold",
+            app.state.model_bundle.get("decision_threshold", 0.89),
+        )
+    )
+    raw_artifact_path = metrics_data.get("model_artifact")
+    if raw_artifact_path:
+        model_artifact = str(raw_artifact_path).replace("\\", "/")
+    else:
+        model_artifact = str(MODEL_PATH.relative_to(PROJECT_ROOT)).replace("\\", "/")
+
     return {
         "diagnostic_label": "diagnostic/development evaluation, not independent final test",
-        "model_artifact": "artifacts/aws_benign_expansion_v0.1/random_forest.joblib",
-        "decision_threshold": 0.89,
+        "model_artifact": model_artifact,
+        "decision_threshold": decision_threshold,
         "evaluation_records": metrics_data.get("evaluation_records", 45240),
         "random_forest": metrics_data.get("random_forest", {}),
         "statistical_baseline": metrics_data.get("statistical_baseline", {}),
