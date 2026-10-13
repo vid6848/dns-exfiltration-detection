@@ -113,12 +113,15 @@ class BatchDNSQuery(BaseModel):
 
 
 def compute_risk_label(attack_score: float, threshold: float) -> str:
+    """Compute risk tier ensuring risk label never contradicts prediction.
+
+    Any score >= threshold is in the suspicious tier ('CRITICAL' or 'SUSPICIOUS').
+    Any score < threshold is in a benign tier ('LOW' or 'ELEVATED') and must never read as suspicious.
+    """
     if attack_score >= threshold:
         return "CRITICAL"
-    if attack_score >= 0.80:
-        return "HIGH"
     if attack_score >= 0.50:
-        return "MEDIUM"
+        return "ELEVATED"
     return "LOW"
 
 
