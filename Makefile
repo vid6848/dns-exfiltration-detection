@@ -1,4 +1,4 @@
-.PHONY: help setup test verify api web demo
+.PHONY: help setup test verify api web demo docker replay
 
 VENV := .venv
 PYTHON := $(VENV)/bin/python
@@ -13,6 +13,8 @@ help:
 	@echo "  make api     - Run FastAPI backend on port 8000"
 	@echo "  make web     - Run Vite dashboard dev server on port 3000"
 	@echo "  make demo    - Start full integrated stack instructions"
+	@echo "  make docker  - Build and run the single deployable container on port 8000"
+	@echo "  make replay  - Stream the demo attack CSV into the API (API=http://127.0.0.1:8000)"
 
 setup:
 	uv venv --python 3.12 $(VENV) || python3 -m venv $(VENV)
@@ -38,3 +40,12 @@ demo:
 	@echo "Terminal 1: make api"
 	@echo "Terminal 2: make web"
 	@echo "Dashboard:  http://localhost:3000"
+
+API ?= http://127.0.0.1:8000
+
+docker:
+	docker build -t cybertrace .
+	docker run --rm -p 8000:8000 cybertrace
+
+replay:
+	$(PYTHON) -m scripts.dns_sensor --api $(API) --capture-id demo-lab replay data/demo/live_demo_stream.csv

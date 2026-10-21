@@ -1,0 +1,7 @@
+# Minimal runtime for the deployed API + dashboard container (see Dockerfile).
+# scikit-learn must match the version that pickled the release model bundle.
+-r requirements-training.txt
+fastapi==0.143.0
+uvicorn==0.54.0
+pydantic==2.14.1
+python-multipart==0.0.20

@@ -521,14 +521,35 @@ Returns aggregate counts and itemized predictions:
 }
 ```
 
-### Planned / Roadmap Endpoints (Continuous Ingestion Scope)
+#### `POST /analyze/csv`
+Multipart CSV upload (up to 15 MB / 20,000 rows), normalized through the shared preprocessing pipeline and scored chronologically.
 
-The following endpoints represent planned continuous live-capture extensions for production deployment and are currently represented as informative empty states in the React dashboard:
+#### `POST /ingest`
+Streaming ingestion for long-running sensors. Requires a `capture_id`; behavioral history for that capture persists across batches, so a slow tunnel split over many uploads still accumulates query frequency and unique subdomains. Records older than the capture's history are rejected individually rather than failing the batch.
 
-- **`GET /alerts`**: Streaming alert feed for active continuous packet capture (currently displays empty state waiting for continuous capture connection).
-- **`GET /statistics`**: Real-time traffic aggregation stream across multi-host network segments.
-- **`GET /model-performance`**: Dynamic model monitoring API; in the current release, verified model benchmarks and feature importance rankings are served directly from verified evaluation artifacts (`evaluation/results/baseline_vs_rf_v1/`) and visualized via the dashboard's offline performance components.
-- **CSV Dataset File Upload (`POST /upload`)**: Direct bulk file ingest for raw PCAP/CSV files.
+#### `GET /alerts`, `GET /statistics`, `GET /model-performance`
+Suspicious events (newest first), cumulative counts, and the diagnostic benchmark metrics. Alerts and statistics are kept in memory and reset when the server restarts.
+
+### Deployment, live sensor and alert extension
+
+The whole system runs as one container: FastAPI serves the API and the built dashboard on the same port.
+
+```bash
+docker build -t cybertrace .
+docker run -p 8000:8000 cybertrace        # dashboard + API at http://localhost:8000
+```
+
+`render.yaml` deploys the same image as a free Render web service (New > Blueprint > this repository).
+
+Traffic reaches the server from three places:
+
+| Source | How | Use |
+|---|---|---|
+| Dashboard | single query, JSON batch, CSV upload | interactive analysis |
+| `scripts/dns_sensor.py live --iface en0` | Scapy sniffs UDP/53 and streams to `/ingest` (needs sudo) | live network monitoring |
+| `scripts/dns_sensor.py replay data/demo/live_demo_stream.csv` | replays a CSV as live traffic, keeping the original gaps | demonstrations |
+
+The `extension/` folder is a Chrome extension that polls `/alerts` and raises a desktop notification for every new suspicious event, so nobody needs to keep the dashboard open. See [extension/README.md](extension/README.md).
 
 ---
 
