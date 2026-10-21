@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CyberTrace DNS Alerts – Settings</title>
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    body { max-width: 620px; margin: 0 auto; padding: 28px 16px; }
+    label { display: block; font-weight: 600; margin: 18px 0 6px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .check { display: flex; gap: 10px; align-items: flex-start; margin-top: 18px; }
+    .check input { margin-top: 3px; }
+    .box { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-top: 18px; background: var(--surface); }
+    #result { margin-top: 14px; min-height: 1.4em; }
+    .ok { color: var(--good); } .err { color: var(--bad); }
+  </style>
+</head>
+<body>
+  <h1>CyberTrace DNS Alerts</h1>
+  <p class="muted">Get a desktop notification whenever the CyberTrace server flags suspicious DNS traffic, without keeping the dashboard open.</p>
+
+  <label for="apiBase">CyberTrace server URL</label>
+  <input id="apiBase" type="url" placeholder="https://cybertrace.example.com" autocomplete="off">
+  <div class="hint">The address of the deployed CyberTrace dashboard/API. Chrome will ask once for permission to contact it.</div>
+
+  <label for="pollSeconds">Check for new alerts every (seconds)</label>
+  <input id="pollSeconds" type="number" min="30" step="15" value="30">
+  <div class="hint">Chrome allows 30 seconds at the fastest.</div>
+
+  <div class="check">
+    <input id="notify" type="checkbox" checked>
+    <div><b>Desktop notifications</b><div class="hint">Off = badge count only.</div></div>
+  </div>
+
+  <div class="box">
+    <div class="check" style="margin-top:0">
+      <input id="monitorBrowsing" type="checkbox">
+      <div>
+        <b>Also check the sites this browser contacts</b>
+        <div class="hint">Sends each hostname this browser connects to (at most once a minute per host, never full URLs or page content) to the server above for scoring. Leave off unless you control that server. Requires an extra "read your browsing activity" permission.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:22px">
+    <button id="test">Test connection</button>
+    <button id="save" class="primary">Save</button>
+  </div>
+  <div id="result"></div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>
