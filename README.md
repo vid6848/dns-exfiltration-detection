@@ -1,5 +1,14 @@
 # DNS Exfiltration Detection Using Network Traffic Analysis
 
+## Served model: fast-burst fix (fast_burst_v0.1)
+
+The API now serves `artifacts/fast_burst_v0.1`. The previous model never saw an
+attack faster than 50 ms between queries and let full-speed tunnels through
+(4.2% caught). Adding fast-burst campaigns to development only, with everything
+else frozen, raises that to 88.4% on unseen domains, while the frozen 45,240-query
+evaluation improves to 95.4% F1 with still zero false alarms. See
+[docs/fast_burst_fix.md](docs/fast_burst_fix.md).
+
 ## Implemented Random Forest training
 
 The latest workflow adds nested domain-group validation, balanced domain
