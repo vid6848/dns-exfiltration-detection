@@ -15,6 +15,8 @@ import {
   fetchLiveStatistics,
 } from './api/client';
 
+const TELEMETRY_POLL_MS = 5000;
+
 export default function App() {
   const [apiBaseUrl, setApiBaseUrl] = useState(DEFAULT_API_BASE_URL);
   const [healthStatus, setHealthStatus] = useState('unknown');
@@ -28,8 +30,10 @@ export default function App() {
   const [alerts, setAlerts] = useState([]);
   const [loadingFeeds, setLoadingFeeds] = useState(false);
 
-  const refreshTelemetry = useCallback(() => {
-    setLoadingFeeds(true);
+  const refreshTelemetry = useCallback((silent = false) => {
+    if (silent !== true) {
+      setLoadingFeeds(true);
+    }
     Promise.all([
       fetchLiveStatistics(apiBaseUrl).catch(() => null),
       fetchLiveAlerts(50, apiBaseUrl).catch(() => null),
@@ -71,6 +75,16 @@ export default function App() {
       isMounted = false;
     };
   }, [apiBaseUrl, refreshTelemetry]);
+
+  // Sensors (scripts/dns_sensor.py, browser extension) stream into /ingest without
+  // touching this page, so keep the feed current while the API is reachable.
+  useEffect(() => {
+    if (healthStatus !== 'online') {
+      return undefined;
+    }
+    const timer = setInterval(() => refreshTelemetry(true), TELEMETRY_POLL_MS);
+    return () => clearInterval(timer);
+  }, [healthStatus, refreshTelemetry]);
 
   return (
     <div className="dashboard-container">
