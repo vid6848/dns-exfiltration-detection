@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { predictSingleQuery } from '../api/client';
 
-export default function SingleQueryForm({ apiBaseUrl }) {
+export default function SingleQueryForm({ apiBaseUrl, onPredictionCompleted }) {
   const [formData, setFormData] = useState({
     timestamp: '',
     src_ip: '',
@@ -97,6 +97,9 @@ export default function SingleQueryForm({ apiBaseUrl }) {
     try {
       const response = await predictSingleQuery(formData, apiBaseUrl);
       setResult(response);
+      if (onPredictionCompleted) {
+        onPredictionCompleted();
+      }
     } catch (err) {
       setApiError(err.message);
     } finally {

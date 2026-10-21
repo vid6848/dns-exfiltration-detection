@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "CyberTrace DNS Alerts",
+  "version": "1.0.0",
+  "description": "Desktop alerts for suspicious DNS exfiltration flagged by a CyberTrace server, without keeping the dashboard open.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "CyberTrace DNS Alerts",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "options.html",
+  "permissions": ["alarms", "notifications", "storage"],
+  "optional_permissions": ["webRequest"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "minimum_chrome_version": "120"
+}

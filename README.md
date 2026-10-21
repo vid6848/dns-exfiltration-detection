@@ -1,5 +1,14 @@
 # DNS Exfiltration Detection Using Network Traffic Analysis
 
+## Served model: fast-burst fix (fast_burst_v0.1)
+
+The API now serves `artifacts/fast_burst_v0.1`. The previous model never saw an
+attack faster than 50 ms between queries and let full-speed tunnels through
+(4.2% caught). Adding fast-burst campaigns to development only, with everything
+else frozen, raises that to 88.4% on unseen domains, while the frozen 45,240-query
+evaluation improves to 95.4% F1 with still zero false alarms. See
+[docs/fast_burst_fix.md](docs/fast_burst_fix.md).
+
 ## Implemented Random Forest training
 
 The latest workflow adds nested domain-group validation, balanced domain
@@ -464,55 +473,92 @@ Scapy
 Joblib
 ```
 
-FastAPI will connect the trained model and analysis functions to the frontend.
+FastAPI connects the trained model and feature-extraction pipeline to the frontend dashboard.
 
-### Main API endpoints
+### Implemented Endpoints
+
+#### `GET /`
+Health and service info check. Returns service status and name.
+
+#### `GET /health`
+Liveness check returning health state and whether the Random Forest model bundle is loaded in memory.
 
 #### `POST /predict`
-
-Accepts a DNS query or extracted feature data and returns:
-
+Performs real-time inference on an individual DNS query. Accepts JSON:
 ```json
 {
-  "prediction": "Suspicious",
-  "probability": 0.91,
-  "risk_level": "HIGH"
+  "timestamp": "2026-10-12T00:00:00Z",
+  "src_ip": "10.0.4.12",
+  "dst_ip": "8.8.8.8",
+  "requested_server_name": "v2-tunnel.darkops-c2.net",
+  "query_type": "TXT",
+  "source": "CyberTrace Dashboard"
+}
+```
+Returns classification label, prediction category, calibrated attack probability score, and decision threshold:
+```json
+{
+  "prediction": "suspicious",
+  "label": 1,
+  "attack_probability": 0.9927,
+  "decision_threshold": 0.89
 }
 ```
 
 #### `POST /analyze`
-
-Analyzes an uploaded DNS dataset.
-
-Returns:
-
-```text
-Total queries
-Benign queries
-Suspicious queries
-Risk statistics
+Analyzes a batch of DNS queries (1 to 1000 items) using a sliding-window behavioral extractor that accumulates query frequency, unique subdomains, and temporal intervals across related queries while preserving original submission order. Accepts:
+```json
+{
+  "queries": [
+    {
+      "timestamp": "2026-10-12T00:00:00Z",
+      "src_ip": "10.0.4.12",
+      "dst_ip": "8.8.8.8",
+      "requested_server_name": "v2-chunk01.tunnel.net",
+      "query_type": "TXT"
+    }
+  ]
+}
+```
+Returns aggregate counts and itemized predictions:
+```json
+{
+  "total_queries": 1,
+  "suspicious_queries": 1,
+  "benign_queries": 0,
+  "results": [ ... ]
+}
 ```
 
-#### `GET /alerts`
+#### `POST /analyze/csv`
+Multipart CSV upload (up to 15 MB / 20,000 rows), normalized through the shared preprocessing pipeline and scored chronologically.
 
-Returns detected suspicious DNS activity.
+#### `POST /ingest`
+Streaming ingestion for long-running sensors. Requires a `capture_id`; behavioral history for that capture persists across batches, so a slow tunnel split over many uploads still accumulates query frequency and unique subdomains. Records older than the capture's history are rejected individually rather than failing the batch.
 
-#### `GET /statistics`
+#### `GET /alerts`, `GET /statistics`, `GET /model-performance`
+Suspicious events (newest first), cumulative counts, and the diagnostic benchmark metrics. Alerts and statistics are kept in memory and reset when the server restarts.
 
-Returns traffic statistics for the dashboard.
+### Deployment, live sensor and alert extension
 
-#### `GET /model-performance`
+The whole system runs as one container: FastAPI serves the API and the built dashboard on the same port.
 
-Returns:
-
-```text
-Accuracy
-Precision
-Recall
-F1-score
-False Positive Rate
-Confusion Matrix
+```bash
+docker build -t cybertrace .
+docker run -p 8000:8000 cybertrace        # dashboard + API at http://localhost:8000
 ```
+
+`render.yaml` deploys the same image as a free Render web service (New > Blueprint > this repository).
+
+Traffic reaches the server from three places:
+
+| Source | How | Use |
+|---|---|---|
+| Dashboard | single query, JSON batch, CSV upload | interactive analysis |
+| `scripts/dns_sensor.py live --iface en0` | Scapy sniffs UDP/53 and streams to `/ingest` (needs sudo) | live network monitoring |
+| `scripts/dns_sensor.py replay data/demo/live_demo_stream.csv` | replays a CSV as live traffic, keeping the original gaps | demonstrations |
+
+The `extension/` folder is a Chrome extension that polls `/alerts` and raises a desktop notification for every new suspicious event, so nobody needs to keep the dashboard open. See [extension/README.md](extension/README.md).
 
 ---
 

@@ -1,0 +1,11 @@
+rank,feature,importance,importance_percent
+1,entropy,0.3902663431,39.026634
+2,subdomain_length,0.1979643140,19.796431
+3,query_length,0.1396041825,13.960418
+4,digit_ratio,0.0900713201,9.007132
+5,longest_label_length,0.0893618610,8.936186
+6,special_char_ratio,0.0511986050,5.119861
+7,unique_subdomains,0.0150823735,1.508237
+8,number_of_labels,0.0117338780,1.173388
+9,time_interval,0.0077431316,0.774313
+10,query_frequency,0.0069739910,0.697399

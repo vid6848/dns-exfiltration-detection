@@ -26,6 +26,7 @@ def verify():
     for name, filename in (
         ('random_forest_v0.1', 'test_predictions.csv'),
         ('aws_benign_expansion_v0.1', 'diagnostic_predictions.csv'),
+        ('fast_burst_v0.1', 'diagnostic_predictions.csv'),
     ):
         directory = Path('artifacts') / name
         log = json.loads((directory / 'experiment.json').read_text(encoding='utf-8'))
