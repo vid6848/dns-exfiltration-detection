@@ -1,0 +1,12 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# New > Blueprint > connect this repository. One free web service runs the
+# FastAPI API and serves the React dashboard from the same URL.
+services:
+  - type: web
+    name: cybertrace
+    runtime: docker
+    plan: free
+    branch: integration/soham-e2e
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
