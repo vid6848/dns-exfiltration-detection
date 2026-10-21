@@ -189,3 +189,45 @@ def test_e2e_model_performance_endpoint(client):
     assert data["random_forest"]["false_positive_rate"] == 0.0
     assert data["random_forest"]["recall"] > 0.90
     assert "diagnostic/development" in data["diagnostic_label"]
+
+
+def _tunnel_query(second, label):
+    return {
+        "timestamp": f"2026-10-20 09:00:{second:02d}.000",
+        "src_ip": "10.0.30.186",
+        "dst_ip": "10.0.0.2",
+        "requested_server_name": f"s.{label}ukez6wzvq7lttlpwff5rkg3.data-relay.info",
+        "query_type": "TXT",
+    }
+
+
+def test_e2e_ingest_keeps_history_across_batches(client):
+    """A tunnel split over separate sensor flushes accumulates one behavioral history."""
+    first = client.post("/ingest", json={"capture_id": "sensor_stream_a", "queries": [_tunnel_query(1, "a")]})
+    assert first.status_code == 200
+    assert first.json()["accepted"] == 1
+
+    second = client.post("/ingest", json={"capture_id": "sensor_stream_a", "queries": [_tunnel_query(3, "b")]})
+    body = second.json()
+    assert body["accepted"] == 1
+    assert body["suspicious_queries"] == 1
+    alert_id = body["alerts"][0]["alert_id"]
+
+    alerts = client.get("/alerts", params={"limit": 500}).json()["alerts"]
+    assert any(a["alert_id"] == alert_id and a["capture_id"] == "sensor_stream_a" for a in alerts)
+
+
+def test_e2e_ingest_rejects_late_records_without_failing_batch(client):
+    client.post("/ingest", json={"capture_id": "sensor_stream_b", "queries": [_tunnel_query(30, "c")]})
+    late = client.post(
+        "/ingest",
+        json={"capture_id": "sensor_stream_b", "queries": [_tunnel_query(10, "d"), _tunnel_query(40, "e")]},
+    )
+    assert late.status_code == 200
+    assert late.json()["accepted"] == 1
+    assert late.json()["rejected"] == 1
+
+
+def test_e2e_ingest_requires_capture_id(client):
+    response = client.post("/ingest", json={"queries": [_tunnel_query(1, "f")]})
+    assert response.status_code == 422

@@ -61,6 +61,17 @@ Used by `POST /analyze`.
 
 ---
 
+### 2.4 Streaming Ingestion Contract (`POST /ingest`)
+
+Used by continuous sensors (`scripts/dns_sensor.py`, the browser extension).
+
+| Field Name | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `capture_id` | `string` | Yes | 1–128 chars | Sensor identity. Behavioral history for this capture persists across requests (bounded LRU of 256 captures). |
+| `queries` | `List[DNSQuery]` | Yes | Min: 1, Max: 1,000 | Events in any order; sorted chronologically before feature extraction. |
+
+Response: `{capture_id, accepted, rejected, suspicious_queries, alerts: [{alert_id, requested_server_name, src_ip, attack_score, risk_label}], errors}`. A record that is invalid, or older than the capture's last event for the same `(src_ip, apex_domain)` group, is counted in `rejected` and does not fail the batch.
+
 ## 3. Timezone & Missing Timestamp Policy
 
 1. **Timezone:** All timestamps are parsed to UTC. If a timestamp string contains explicit timezone offsets (e.g., `+05:30` or `Z`), it is normalized to UTC epoch seconds. If naive, UTC is assumed.
@@ -167,7 +178,8 @@ The risk tier classification is designed to never contradict the binary predicti
 - **Grouping Key:** Behavioral state is tracked strictly by `(src_ip, apex_domain)`.
 - **Capture Boundary:** To prevent state contamination between different capture files or test sessions, extractors are partitioned by `capture_id`.
   - Queries for `evil.com` in `capture_id="pcap_alpha"` **DO NOT** increment frequencies or update `time_interval` for `evil.com` in `capture_id="pcap_beta"`.
-  - For interactive batch requests, a dedicated extractor instance is allocated per batch.
+  - For interactive batch requests (`/analyze`, `/analyze/csv`), a dedicated extractor instance is allocated per batch.
+  - `/predict` and `/ingest` reuse the long-lived extractor for their `capture_id`.
 
 ---
 
