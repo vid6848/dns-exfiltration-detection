@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from src.features.behavioral import BehavioralFeatureExtractor
@@ -47,12 +48,20 @@ DEFAULT_CORS_ORIGINS = [
 MAX_CSV_BYTES = 15 * 1024 * 1024  # 15 MB
 MAX_CSV_ROWS = 20000
 
+# Built React dashboard; served from "/" only when CYBERTRACE_SERVE_DASHBOARD=1
+# (set in the Docker image) so local development keeps the JSON root response.
+DASHBOARD_DIST = PROJECT_ROOT / "frontend" / "dist"
+SERVE_DASHBOARD = os.getenv("CYBERTRACE_SERVE_DASHBOARD", "") == "1"
+
 
 class AppStateStore:
     """Thread-safe in-memory store for real processed query events, alerts, and bounded capture extractors."""
 
     def __init__(self, max_alerts: int = 500, max_capture_extractors: int = 256):
         self.lock = threading.Lock()
+        # Serializes feature extraction on long-lived capture extractors, which
+        # are shared across requests (/predict and /ingest) and are not thread-safe.
+        self.extraction_lock = threading.Lock()
         self.max_alerts = max_alerts
         self.max_capture_extractors = max_capture_extractors
         self.total_processed: int = 0
@@ -146,6 +155,13 @@ class BatchDNSQuery(BaseModel):
     capture_id: Optional[str] = None
 
 
+class IngestBatch(BaseModel):
+    """Streaming batch from a long-running sensor (packet sniffer, replay, browser extension)."""
+
+    capture_id: str = Field(min_length=1, max_length=128)
+    queries: List[DNSQuery] = Field(min_length=1, max_length=1000)
+
+
 def compute_risk_label(attack_score: float, threshold: float) -> str:
     """Compute risk tier ensuring risk label never contradicts prediction.
 
@@ -233,12 +249,13 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-def root():
-    return {
-        "message": "CyberTrace API is running",
-        "status": "ok",
-    }
+if not SERVE_DASHBOARD:
+    @app.get("/")
+    def root():
+        return {
+            "message": "CyberTrace API is running",
+            "status": "ok",
+        }
 
 
 @app.get("/health")
@@ -264,7 +281,8 @@ def predict_dns_query(query: DNSQuery):
 
         # Retrieve capture-isolated behavioral extractor
         extractor = app.state.store.get_capture_extractor(capture_id)
-        behavioral_features = extractor.extract(record)
+        with app.state.store.extraction_lock:
+            behavioral_features = extractor.extract(record)
         features.update(behavioral_features)
 
         predictions, probabilities = predict_features(
@@ -591,6 +609,82 @@ async def analyze_csv(
     }
 
 
+@app.post("/ingest")
+def ingest_stream(batch: IngestBatch):
+    """Streaming ingestion for continuous sensors.
+
+    Unlike /analyze (fresh history per batch), behavioral history persists across
+    batches for the same capture_id, so a slow tunnel split over many sensor
+    flushes still accumulates query_frequency and unique_subdomains.
+    """
+    pipeline = app.state.pipeline
+    store = app.state.store
+
+    parsed = []
+    rejected = []
+    for index, query in enumerate(batch.queries):
+        try:
+            raw_record = pipeline.parse_csv_row_to_raw_record(query.model_dump())
+            record = pipeline.normalize_and_parse_record(raw_record)
+            parsed.append((record, extract_per_query_features(record)))
+        except ValueError as exc:
+            rejected.append({"index": index, "error": str(exc)})
+
+    parsed.sort(key=lambda item: float(item[0].epoch_time))
+
+    extractor = store.get_capture_extractor(batch.capture_id)
+    accepted = []
+    with store.extraction_lock:
+        for record, structural_features in parsed:
+            try:
+                behavioral_features = extractor.extract(record)
+            except ValueError as exc:
+                # Record older than this capture's history for its group (late arrival).
+                rejected.append({"requested_server_name": str(record.requested_server_name), "error": str(exc)})
+                continue
+            combined = dict(structural_features)
+            combined.update(behavioral_features)
+            accepted.append((record, combined))
+
+    alerts = []
+    if accepted:
+        predictions, probabilities = predict_features(
+            app.state.model_bundle,
+            [features for _, features in accepted],
+        )
+        threshold = float(app.state.model_bundle["decision_threshold"])
+        for (record, features), label, probability in zip(accepted, predictions, probabilities):
+            probability = float(probability)
+            label = int(label)
+            risk_label = compute_risk_label(probability, threshold)
+            alert_id = store.record_prediction(
+                record=record,
+                label=label,
+                attack_score=probability,
+                threshold=threshold,
+                risk_label=risk_label,
+                rule_indicators=compute_rule_indicators(features),
+                capture_id=batch.capture_id,
+            )
+            if alert_id:
+                alerts.append({
+                    "alert_id": alert_id,
+                    "requested_server_name": str(record.requested_server_name),
+                    "src_ip": str(record.src_ip),
+                    "attack_score": probability,
+                    "risk_label": risk_label,
+                })
+
+    return {
+        "capture_id": batch.capture_id,
+        "accepted": len(accepted),
+        "rejected": len(rejected),
+        "suspicious_queries": len(alerts),
+        "alerts": alerts,
+        "errors": rejected[:20],
+    }
+
+
 @app.get("/alerts")
 def get_alerts(limit: int = Query(50, ge=1, le=500)):
     """Retrieve suspicious events from processed records in reverse chronological order."""
@@ -649,3 +743,7 @@ def get_model_performance():
             "Previously inspected diagnostic development evaluation. Not an independent final test or proof of real-world generalization.",
         ),
     }
+
+# Registered last so every API route above takes precedence over the static files.
+if SERVE_DASHBOARD and (DASHBOARD_DIST / "index.html").is_file():
+    app.mount("/", StaticFiles(directory=DASHBOARD_DIST, html=True), name="dashboard")
