@@ -19,8 +19,8 @@ RUN pip install --no-cache-dir -r requirements-serve.txt
 
 COPY api/ api/
 COPY src/ src/
-COPY artifacts/aws_benign_expansion_v0.1/random_forest.joblib artifacts/aws_benign_expansion_v0.1/
-COPY evaluation/results/baseline_vs_rf_v1/baseline_vs_rf_metrics.json evaluation/results/baseline_vs_rf_v1/
+COPY artifacts/fast_burst_v0.1/random_forest.joblib artifacts/fast_burst_v0.1/
+COPY evaluation/results/baseline_vs_rf_v2/baseline_vs_rf_metrics.json evaluation/results/baseline_vs_rf_v2/
 COPY --from=dashboard /build/dist frontend/dist
 
 RUN useradd --create-home cybertrace

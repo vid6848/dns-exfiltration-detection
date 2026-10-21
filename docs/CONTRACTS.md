@@ -95,7 +95,7 @@ Per `src/preprocessing/schema.py:verify_ml_feature_safety`, the following metada
 - `label`
 
 ### 4.2 Exact Ten-Feature Order & Schema
-The inference bundle `artifacts/aws_benign_expansion_v0.1/random_forest.joblib` requires exactly 10 features in this sequence:
+The inference bundle `artifacts/fast_burst_v0.1/random_forest.joblib` requires exactly 10 features in this sequence:
 
 | Index | Feature Name | Type | Source Module | Definition & Boundaries |
 |---|---|---|---|---|
@@ -115,7 +115,7 @@ The inference bundle `artifacts/aws_benign_expansion_v0.1/random_forest.joblib` 
 ## 5. Inference, Prediction & Terminology Contracts
 
 ### 5.1 Calibrated Operating Threshold
-- **Threshold ($\tau$):** **`0.89`**.
+- **Threshold ($\tau$):** **`0.90`** (selected by inner CV for `fast_burst_v0.1`; the earlier `aws_benign_expansion_v0.1` bundle used `0.89`, see `docs/fast_burst_fix.md`).
 - **Model Bundle Execution:** Inference is executed strictly via:
   ```python
   from src.ml.artifact import load_model, predict_features
@@ -136,7 +136,7 @@ The inference bundle `artifacts/aws_benign_expansion_v0.1/random_forest.joblib` 
   "prediction": "suspicious",
   "label": 1,
   "attack_score": 0.942,
-  "threshold": 0.89,
+  "threshold": 0.9,
   "risk_label": "CRITICAL",
   "rule_indicators": {
     "query_length_flag": true,
@@ -147,7 +147,7 @@ The inference bundle `artifacts/aws_benign_expansion_v0.1/random_forest.joblib` 
     "baseline_flagged": true
   },
   "model_identity": {
-    "artifact": "artifacts/aws_benign_expansion_v0.1/random_forest.joblib",
+    "artifact": "artifacts/fast_burst_v0.1/random_forest.joblib",
     "trees": 150,
     "features": 10,
     "deployment_ready": false,
@@ -167,9 +167,9 @@ The `rule_indicators` map directly derives from the frozen 4-indicator statistic
 The risk tier classification is designed to never contradict the binary prediction decision:
 - **Benign Tiers (`attack_score < threshold`, prediction = `benign`):**
   - `LOW`: `attack_score < 0.50` (routine benign traffic)
-  - `ELEVATED`: `0.50 <= attack_score < threshold` (non-standard benign query, e.g. CDN or cloud subdomain, but below operating threshold $\tau = 0.89$; explicitly classified as benign)
+  - `ELEVATED`: `0.50 <= attack_score < threshold` (non-standard benign query, e.g. CDN or cloud subdomain, but below operating threshold $\tau = 0.90$; explicitly classified as benign)
 - **Suspicious Tier (`attack_score >= threshold`, prediction = `suspicious`):**
-  - `CRITICAL`: `attack_score >= threshold` (flags detection alert, $\tau = 0.89$)
+  - `CRITICAL`: `attack_score >= threshold` (flags detection alert, $\tau = 0.90$)
 
 ---
 

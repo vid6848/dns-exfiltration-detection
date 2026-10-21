@@ -75,8 +75,8 @@ export default function OfflineModelPerformance({ apiBaseUrl }) {
             {metrics?.diagnostic_label || 'diagnostic/development evaluation, not independent final test'}
           </span>
           <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-            Model Artifact: <code>{metrics?.model_artifact || 'artifacts/aws_benign_expansion_v0.1/random_forest.joblib'}</code> |
-            Threshold: <code>{metrics?.decision_threshold ?? 0.89}</code> | Evaluated Population: {metrics?.evaluation_records?.toLocaleString() || '45,240'} records
+            Model Artifact: <code>{metrics?.model_artifact || 'artifacts/fast_burst_v0.1/random_forest.joblib'}</code> |
+            Threshold: <code>{metrics?.decision_threshold ?? 0.9}</code> | Evaluated Population: {metrics?.evaluation_records?.toLocaleString() || '45,240'} records
           </div>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function OfflineModelPerformance({ apiBaseUrl }) {
               <div>
                 <div className="model-box-title">Random Forest Classifier</div>
                 <div style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
-                  Decision Threshold: {metrics?.decision_threshold ?? 0.89}
+                  Decision Threshold: {metrics?.decision_threshold ?? 0.9}
                 </div>
               </div>
               <span style={{ fontSize: '1.25rem' }}>🌲</span>
