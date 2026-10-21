@@ -1,0 +1,49 @@
+# Code Owners for CyberTrace Repository
+# Reference: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default fallback review
+* @vid6848
+
+# Project Integration & API review (Soham)
+/api/ @Soham-Prajapati
+/frontend/src/api/ @Soham-Prajapati
+/docs/CONTRACTS.md @Soham-Prajapati
+/tests/test_contracts.py @Soham-Prajapati
+/tests/test_e2e.py @Soham-Prajapati
+/Makefile @Soham-Prajapati
+
+# Preprocessing & Normalization (Yash)
+/src/preprocessing/ @Astr0876
+/tests/test_preprocessing.py @Astr0876
+
+# Simulated Attack Generation (Param)
+/data/generate_synthetic_exfiltration.py @param7862989-ops
+/data/validate_synthetic.py @param7862989-ops
+/data/synthetic_generation.md @param7862989-ops
+
+# Per-query Features (Hero / Harsh Vishwakarma)
+/src/features/per_query.py @Hero
+/tests/test_per_query_features.py @Hero
+
+# Behavioral Features & Statistical Baseline (Rudraksh)
+/src/features/behavioral.py @Rudraksh
+/src/baseline/ @Rudraksh
+/tests/test_behavioral_features.py @Rudraksh
+/tests/test_baseline_detector.py @Rudraksh
+
+# Machine Learning Training & Bundles (Jaynish)
+/src/ml/ @jaynishthakar
+/tests/test_ml_training.py @jaynishthakar
+/tests/test_robust_training.py @jaynishthakar
+
+# Evaluation & Latency Benchmarks (Harshul)
+/evaluation/ @Harshul2827
+/scripts/evaluate_baseline_vs_rf.py @Harshul2827
+/scripts/benchmark_evaluation_latency.py @Harshul2827
+
+# FastAPI Backend Serving (Pranay)
+/api/main.py @vorapranay1412
+/tests/test_api.py @vorapranay1412
+
+# Dashboard UI & Visualization (Bhumit)
+/frontend/ @bhumitsethi11-eng

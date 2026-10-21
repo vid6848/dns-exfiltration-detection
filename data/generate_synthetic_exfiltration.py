@@ -13,6 +13,9 @@ Profiles supported:
   D. Variable-length payload chunks (short to medium payload emulation)
   E. Low-and-slow DNS activity (covert drip exfiltration with wide time deltas)
   F. High-frequency / burst DNS activity (automated bulk exfiltration bursts)
+  F2. Fast-burst DNS activity (opt-in): a tool sending the next chunk as soon as
+      the previous answer returns, 2-50 ms apart. Not in v0.1; see
+      docs/fast_burst_fix.md.
   G. Multiple subdomain structures (variable label depths: 3 to 7 labels)
 
 All records use label = 1.
@@ -43,6 +46,10 @@ EXPECTED_COLUMNS = [
 ]
 
 DEFAULT_SOURCE_TAG = "CyberTrace Synthetic DNS Exfiltration v0.1"
+
+# v0.1 used only these two modes; keep them the default so its output is unchanged.
+DEFAULT_TIMING_MODES = ["burst", "low_and_slow"]
+TIMING_MODES = ("burst", "low_and_slow", "fast_burst")
 
 # Default realistic base domains across diverse TLDs
 DEFAULT_BASE_DOMAINS = [
@@ -148,7 +155,7 @@ class AttackCampaign:
         self.base_domain = base_domain
         self.src_ip = src_ip
         self.dst_ip = dst_ip
-        self.timing_mode = timing_mode  # 'burst' or 'low_and_slow'
+        self.timing_mode = timing_mode  # 'burst', 'low_and_slow' or 'fast_burst'
         self.current_time = start_time
         self.rng = rng
         self.seq_num = 0
@@ -226,6 +233,10 @@ class AttackCampaign:
             # High-frequency: 0.05s to 1.5s delta
             delta_ms = self.rng.uniform(50.0, 1500.0)
             self.current_time += timedelta(milliseconds=delta_ms)
+        elif self.timing_mode == "fast_burst":
+            # Round-trip bound: next chunk leaves as soon as the answer returns.
+            delta_ms = self.rng.uniform(2.0, 50.0)
+            self.current_time += timedelta(milliseconds=delta_ms)
         else:
             # Low-and-slow: 15s to 300s delta
             delta_sec = self.rng.uniform(15.0, 300.0)
@@ -243,9 +254,14 @@ def generate_synthetic_dataset(
     src_ips: Optional[List[str]] = None,
     dst_ips: Optional[List[str]] = None,
     source_tag: str = DEFAULT_SOURCE_TAG,
+    timing_modes: Optional[List[str]] = None,
 ) -> Tuple[List[Dict[str, str]], Dict[str, any]]:
     """Generates synthetic DNS exfiltration records."""
     rng = random.Random(seed)
+    modes = list(timing_modes) if timing_modes else list(DEFAULT_TIMING_MODES)
+    unknown = set(modes) - set(TIMING_MODES)
+    if unknown:
+        raise ValueError(f"Unknown timing modes: {sorted(unknown)}")
 
     domains = base_domains if base_domains else DEFAULT_BASE_DOMAINS
     sources = src_ips if src_ips else DEFAULT_SRC_IPS
@@ -280,7 +296,7 @@ def generate_synthetic_dataset(
             c_src = rng.choice([ip for ip in sources if ip != "10.0.30.186"] or sources)
 
         c_dst = rng.choice(resolvers)
-        t_mode = rng.choice(["burst", "low_and_slow"])
+        t_mode = rng.choice(modes)
 
         # Offset start time randomly within first 85% of window so campaigns finish before end_dt
         offset_sec = rng.uniform(0.0, total_window_seconds * 0.85)
@@ -356,6 +372,7 @@ def generate_synthetic_dataset(
         "base_domains": domains,
         "src_ips": sources,
         "dst_ips": resolvers,
+        "timing_modes": modes,
     }
 
     return records, metadata
@@ -432,6 +449,14 @@ def main():
         help="Comma-separated list of destination resolver IPs",
     )
 
+    parser.add_argument(
+        "--timing-modes",
+        type=str,
+        default=",".join(DEFAULT_TIMING_MODES),
+        help=f"Comma-separated campaign timing modes from {', '.join(TIMING_MODES)} "
+        f"(default: {','.join(DEFAULT_TIMING_MODES)}, as used for v0.1)",
+    )
+
     args = parser.parse_args()
 
     custom_domains = [d.strip() for d in args.base_domains.split(",")] if args.base_domains else None
@@ -448,6 +473,7 @@ def main():
         src_ips=custom_srcs,
         dst_ips=custom_dsts,
         source_tag=args.source_tag,
+        timing_modes=[m.strip() for m in args.timing_modes.split(",") if m.strip()],
     )
 
     out_path = Path(args.output)
