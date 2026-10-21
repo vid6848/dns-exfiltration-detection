@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CyberTrace DNS Alerts</title>
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    body { width: 380px; padding: 14px; }
+    header { display: flex; justify-content: space-between; align-items: center; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+    .stat { background: var(--surface); border-radius: 8px; padding: 8px; }
+    .stat b { display: block; font-size: 18px; }
+    .stat span { font-size: 11px; color: var(--muted); }
+    .alert { border-left: 3px solid var(--bad); background: var(--bad-soft); border-radius: 6px; padding: 7px 9px; margin: 6px 0; }
+    .alert .top { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+    .alert .risk { color: var(--bad); font-weight: 700; }
+    .empty { padding: 16px; text-align: center; background: var(--surface); border-radius: 8px; }
+    #list { max-height: 300px; overflow-y: auto; }
+    footer { display: flex; gap: 6px; margin-top: 12px; }
+    footer button { flex: 1; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CyberTrace DNS Alerts</h1>
+    <div class="row"><span id="dot" class="dot"></span><span id="status" class="muted">…</span></div>
+  </header>
+  <div class="muted mono" id="server"></div>
+  <div class="stats">
+    <div class="stat"><b id="processed">–</b><span>queries scored</span></div>
+    <div class="stat"><b id="suspicious">–</b><span>suspicious</span></div>
+    <div class="stat"><b id="rate">–</b><span>suspicious rate</span></div>
+  </div>
+  <h2>Recent alerts</h2>
+  <div id="list"></div>
+  <footer>
+    <button id="dashboard" class="primary">Open dashboard</button>
+    <button id="refresh">Check now</button>
+    <button id="settings">Settings</button>
+  </footer>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
