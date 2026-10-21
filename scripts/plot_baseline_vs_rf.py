@@ -5,6 +5,7 @@ Reads the existing evaluation JSON and saves plots separately.
 Does not retrain the model or modify existing evaluation results.
 """
 
+import argparse
 import json
 from pathlib import Path
 
@@ -233,4 +234,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--results-dir", type=Path, default=RESULTS_DIR)
+    args = parser.parse_args()
+    RESULTS_DIR = args.results_dir
+    METRICS_PATH = RESULTS_DIR / "baseline_vs_rf_metrics.json"
+    PLOTS_DIR = RESULTS_DIR / "plots"
     main()

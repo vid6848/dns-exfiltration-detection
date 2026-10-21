@@ -1,0 +1,71 @@
+{
+  "model_artifact": "artifacts/fast_burst_v0.1/random_forest.joblib",
+  "feature_manifest": "artifacts/fast_burst_v0.1/feature_order.json",
+  "decision_threshold": 0.9,
+  "window_seconds": 60.0,
+  "importance_method": "Random Forest feature_importances_ (impurity-based global importance)",
+  "interpretation_note": "Importance is model-specific and global. It does not establish causality or explain an individual prediction. Correlated features may share or redistribute importance.",
+  "importance_sum": 1.0,
+  "features": [
+    {
+      "rank": 1,
+      "feature": "entropy",
+      "importance": 0.39026634313522324,
+      "importance_percent": 39.02663431352232
+    },
+    {
+      "rank": 2,
+      "feature": "subdomain_length",
+      "importance": 0.19796431399207223,
+      "importance_percent": 19.796431399207222
+    },
+    {
+      "rank": 3,
+      "feature": "query_length",
+      "importance": 0.1396041825431138,
+      "importance_percent": 13.96041825431138
+    },
+    {
+      "rank": 4,
+      "feature": "digit_ratio",
+      "importance": 0.09007132010939609,
+      "importance_percent": 9.007132010939609
+    },
+    {
+      "rank": 5,
+      "feature": "longest_label_length",
+      "importance": 0.08936186100985744,
+      "importance_percent": 8.936186100985744
+    },
+    {
+      "rank": 6,
+      "feature": "special_char_ratio",
+      "importance": 0.0511986050209467,
+      "importance_percent": 5.11986050209467
+    },
+    {
+      "rank": 7,
+      "feature": "unique_subdomains",
+      "importance": 0.015082373513390961,
+      "importance_percent": 1.508237351339096
+    },
+    {
+      "rank": 8,
+      "feature": "number_of_labels",
+      "importance": 0.011733878036152943,
+      "importance_percent": 1.1733878036152943
+    },
+    {
+      "rank": 9,
+      "feature": "time_interval",
+      "importance": 0.007743131613620225,
+      "importance_percent": 0.7743131613620226
+    },
+    {
+      "rank": 10,
+      "feature": "query_frequency",
+      "importance": 0.006973991026226341,
+      "importance_percent": 0.6973991026226342
+    }
+  ]
+}

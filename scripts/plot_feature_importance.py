@@ -6,6 +6,7 @@ the model or Jaynish's existing experiment artifacts.
 """
 
 import csv
+import argparse
 import json
 from pathlib import Path
 
@@ -189,4 +190,12 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--experiment-dir", type=Path, default=EXPERIMENT_DIR)
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
+    args = parser.parse_args()
+    EXPERIMENT_DIR = args.experiment_dir
+    MODEL_PATH = EXPERIMENT_DIR / "random_forest.joblib"
+    MANIFEST_PATH = EXPERIMENT_DIR / "feature_order.json"
+    OUTPUT_DIR = args.output_dir
     main()
