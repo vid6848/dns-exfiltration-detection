@@ -27,14 +27,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_PATH = (
     PROJECT_ROOT
     / "artifacts"
-    / "aws_benign_expansion_v0.1"
+    / "fast_burst_v0.1"
     / "random_forest.joblib"
 )
 METRICS_PATH = (
     PROJECT_ROOT
     / "evaluation"
     / "results"
-    / "baseline_vs_rf_v1"
+    / "baseline_vs_rf_v2"
     / "baseline_vs_rf_metrics.json"
 )
 
@@ -722,7 +722,7 @@ def get_model_performance():
     decision_threshold = float(
         metrics_data.get(
             "decision_threshold",
-            app.state.model_bundle.get("decision_threshold", 0.89),
+            app.state.model_bundle["decision_threshold"],
         )
     )
     raw_artifact_path = metrics_data.get("model_artifact")

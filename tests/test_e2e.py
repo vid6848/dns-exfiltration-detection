@@ -183,7 +183,7 @@ def test_e2e_model_performance_endpoint(client):
     res = client.get("/model-performance")
     assert res.status_code == 200
     data = res.json()
-    assert data["decision_threshold"] == 0.89
+    assert data["decision_threshold"] == 0.9
     assert data["evaluation_records"] == 45240
     assert data["random_forest"]["precision"] == 1.0
     assert data["random_forest"]["false_positive_rate"] == 0.0

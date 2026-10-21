@@ -63,7 +63,7 @@ def test_predict_benign_query(client):
     assert data["label"] == 0
     assert isinstance(data["attack_probability"], float)
     assert data["attack_probability"] < 0.1
-    assert data["decision_threshold"] == 0.89
+    assert data["decision_threshold"] == 0.9
 
 
 def test_predict_exfiltration_query(client):
@@ -96,8 +96,8 @@ def test_predict_exfiltration_query(client):
     data = r2.json()
     assert data["prediction"] == "suspicious"
     assert data["label"] == 1
-    assert data["attack_probability"] > 0.89
-    assert data["decision_threshold"] == 0.89
+    assert data["attack_probability"] >= 0.9
+    assert data["decision_threshold"] == 0.9
 
 
 def test_predict_missing_required_fields(client):

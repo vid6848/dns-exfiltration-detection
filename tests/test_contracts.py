@@ -2,7 +2,7 @@
 
 Verifies:
 - Exact feature schema and order (10 features)
-- 0.89 decision threshold applied
+- 0.90 decision threshold applied (fast_burst_v0.1 bundle)
 - First-query time_interval == -1.0
 - Inclusive 60-second window behavior
 - Raw IPs, timestamps, and labels never reach the feature vector
@@ -148,11 +148,11 @@ def test_inclusive_60_second_sliding_window():
 
 
 def test_saved_089_threshold_enforced(client):
-    """Verify that the API enforces the calibrated 0.89 threshold."""
+    """Verify that the API enforces the selected 0.90 threshold."""
     res = client.get("/model-performance")
     assert res.status_code == 200
     data = res.json()
-    assert data["decision_threshold"] == 0.89
+    assert data["decision_threshold"] == 0.9
     assert "diagnostic/development" in data["diagnostic_label"]
 
 

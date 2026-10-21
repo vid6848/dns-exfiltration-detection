@@ -57,7 +57,7 @@ export default function LiveAlertsTable({ alerts, loading, onRefresh }) {
                       {((alert.attack_score ?? 0) * 100).toFixed(2)}%
                     </span>
                     <span className="text-muted" style={{ fontSize: '0.725rem', marginLeft: '0.35rem' }}>
-                      (τ = {alert.decision_threshold?.toFixed(2) || '0.89'})
+                      (τ = {alert.decision_threshold?.toFixed(2) || '0.90'})
                     </span>
                   </td>
                   <td style={{ fontSize: '0.75rem' }}>
@@ -103,7 +103,7 @@ export default function LiveAlertsTable({ alerts, loading, onRefresh }) {
                     No alerts in current buffer — waiting for incoming queries
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b', maxWidth: '480px', margin: '0 auto' }}>
-                    When queries cross the calibrated 0.89 decision threshold via single query prediction, JSON batch analysis, or CSV upload, they appear dynamically here.
+                    When queries cross the selected 0.90 decision threshold via single query prediction, JSON batch analysis, or CSV upload, they appear dynamically here.
                   </div>
                 </td>
               </tr>
