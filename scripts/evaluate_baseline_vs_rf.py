@@ -5,6 +5,7 @@ This is a diagnostic development evaluation, not an independent final test.
 Existing model and experiment artifacts are read-only.
 """
 
+import argparse
 import csv
 import json
 from pathlib import Path
@@ -303,5 +304,20 @@ def main() -> None:
     print(f"Predictions saved to: {predictions_path}")
 
 
+def configure(experiment_dir: Path, output_dir: Path) -> None:
+    """Point the comparison at another frozen-fold experiment (same file layout)."""
+    global EXPERIMENT_DIR, MODEL_PATH, EXPERIMENT_PATH, SAVED_PREDICTIONS_PATH, OUTPUT_DIR
+    EXPERIMENT_DIR = experiment_dir
+    MODEL_PATH = EXPERIMENT_DIR / "random_forest.joblib"
+    EXPERIMENT_PATH = EXPERIMENT_DIR / "experiment.json"
+    SAVED_PREDICTIONS_PATH = EXPERIMENT_DIR / "diagnostic_predictions.csv"
+    OUTPUT_DIR = output_dir
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--experiment-dir", type=Path, default=EXPERIMENT_DIR)
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
+    args = parser.parse_args()
+    configure(args.experiment_dir, args.output_dir)
     main()
