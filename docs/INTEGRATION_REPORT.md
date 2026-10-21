@@ -222,3 +222,28 @@ To ensure complete and accurate attribution in the unified course report, the fo
 
 > **Project Coordination & End-to-End Integration (Soham Prajapati):**  
 > Soham unified the individual component contributions of the team into a production-grade, reproducible software artifact on branch `integration/soham-e2e`. He established formal data and API contracts (`docs/CONTRACTS.md`), resolved the repository environment reproduction blocker by standardizing `requirements.txt` and creating automated developer targets (`Makefile`), and completed the REST API surface by implementing multipart CSV ingestion (`POST /analyze/csv`), telemetry summaries (`GET /statistics`), dynamic model performance metrics (`GET /model-performance`), and alert retrieval (`GET /alerts`). Soham connected the React single-page application to live backend telemetry via a polled alert feed, dynamic metric cards, and a drag-and-drop CSV batch upload pipeline. He implemented thread-safe state synchronization and multi-capture sliding-window isolation, expanded test coverage from 67 to 95 passed tests, authored the GitHub Actions CI pipeline and repository governance policies, identified the root cause of the provenance hash discrepancy, produced an exhaustive reproducible demonstration guide (`docs/DEMO.md`), and conducted technical reviews of all team pull requests.
+
+---
+
+## 12. Post-Review Delivery: Deployment, Live Alerting & Fast-Burst Fix (2026-10-22)
+
+| Commit | Deliverable |
+|---|---|
+| `ac6df2c` | `POST /ingest` streaming endpoint; behavioral history persists per `capture_id` across batches. |
+| `0e69a4e` | `scripts/dns_sensor.py`: live Scapy DNS capture and CSV replay streaming into `/ingest`; demo capture `data/demo/live_demo_stream.csv`. |
+| `2600d39` | Dashboard alert feed and statistics refresh every 5 s, so sensor events appear without user action. |
+| `8759d3b` | Chrome extension (`extension/`): desktop notifications and unread badge from `GET /alerts`. |
+| `bcb1d0f` | Single Docker image serving API + dashboard; `render.yaml`; deployed at `https://cybertrace-gjhl.onrender.com`. |
+| `9eeb4f9`…`1390736` | Fast-burst fix: opt-in generator mode, `src/ml/fast_burst.py`, `artifacts/fast_burst_v0.1`, `evaluation/results/baseline_vs_rf_v2`, API switched to the new bundle (τ = 0.90). |
+
+**Fast-burst blind spot.** The synthetic attacks never had gaps under 50 ms (generator burst mode 50–1500 ms), while 3.5% of real benign gaps are that short, so the previous model scored full-speed tunnels as benign. With the evaluation fold frozen and only development data extended:
+
+| Measure | aws_benign_expansion_v0.1 | fast_burst_v0.1 |
+|---|---|---|
+| Frozen evaluation F1 / recall | 95.03% / 90.53% | 95.40% / 91.21% |
+| False alarms (43,340 benign; 2,446 with gap < 50 ms) | 0; 0 | 0; 0 |
+| Unseen fast-burst stress set (2–50 ms) | 4.2% | 88.4% |
+
+Remaining limit: gaps of about 1 ms or less are still missed. Details: [docs/fast_burst_fix.md](fast_burst_fix.md).
+
+**Verification:** 103 backend and 8 frontend tests pass in CI; `verify_release_models` reproduces all three release models bit-for-bit; the live deployment flagged 56/60 tunnel queries (normal replay) and 50/50 (fast replay) with 0 false alarms.

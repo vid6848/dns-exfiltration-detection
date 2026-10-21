@@ -462,5 +462,29 @@ hr {
 <p><strong>Project Coordination &amp; End-to-End Integration (Soham Prajapati):</strong><br />
 Soham unified the individual component contributions of the team into a production-grade, reproducible software artifact on branch <code>integration/soham-e2e</code>. He established formal data and API contracts (<code>docs/CONTRACTS.md</code>), resolved the repository environment reproduction blocker by standardizing <code>requirements.txt</code> and creating automated developer targets (<code>Makefile</code>), and completed the REST API surface by implementing multipart CSV ingestion (<code>POST /analyze/csv</code>), telemetry summaries (<code>GET /statistics</code>), dynamic model performance metrics (<code>GET /model-performance</code>), and alert retrieval (<code>GET /alerts</code>). Soham connected the React single-page application to live backend telemetry via a polled alert feed, dynamic metric cards, and a drag-and-drop CSV batch upload pipeline. He implemented thread-safe state synchronization and multi-capture sliding-window isolation, expanded test coverage from 67 to 95 passed tests, authored the GitHub Actions CI pipeline and repository governance policies, identified the root cause of the provenance hash discrepancy, produced an exhaustive reproducible demonstration guide (<code>docs/DEMO.md</code>), and conducted technical reviews of all team pull requests.</p>
 </blockquote>
+<hr />
+<h2>12. Post-Review Delivery: Deployment, Live Alerting &amp; Fast-Burst Fix (2026-10-22)</h2>
+<table>
+<thead><tr><th>Commit</th><th>Deliverable</th></tr></thead>
+<tbody>
+<tr><td><code>ac6df2c</code></td><td><code>POST /ingest</code> streaming endpoint; behavioral history persists per <code>capture_id</code> across batches.</td></tr>
+<tr><td><code>0e69a4e</code></td><td><code>scripts/dns_sensor.py</code>: live Scapy DNS capture and CSV replay streaming into <code>/ingest</code>; demo capture <code>data/demo/live_demo_stream.csv</code>.</td></tr>
+<tr><td><code>2600d39</code></td><td>Dashboard alert feed and statistics refresh every 5 s, so sensor events appear without user action.</td></tr>
+<tr><td><code>8759d3b</code></td><td>Chrome extension (<code>extension/</code>): desktop notifications and unread badge from <code>GET /alerts</code>.</td></tr>
+<tr><td><code>bcb1d0f</code></td><td>Single Docker image serving API + dashboard; <code>render.yaml</code>; deployed at <code>https://cybertrace-gjhl.onrender.com</code>.</td></tr>
+<tr><td><code>9eeb4f9</code>…<code>1390736</code></td><td>Fast-burst fix: opt-in generator mode, <code>src/ml/fast_burst.py</code>, <code>artifacts/fast_burst_v0.1</code>, <code>evaluation/results/baseline_vs_rf_v2</code>, API switched to the new bundle (&tau; = 0.90).</td></tr>
+</tbody>
+</table>
+<p><strong>Fast-burst blind spot.</strong> The synthetic attacks never had gaps under 50 ms (generator burst mode 50–1500 ms), while 3.5% of real benign gaps are that short, so the previous model scored full-speed tunnels as benign. With the evaluation fold frozen and only development data extended:</p>
+<table>
+<thead><tr><th>Measure</th><th>aws_benign_expansion_v0.1</th><th>fast_burst_v0.1</th></tr></thead>
+<tbody>
+<tr><td>Frozen evaluation F1 / recall</td><td>95.03% / 90.53%</td><td>95.40% / 91.21%</td></tr>
+<tr><td>False alarms (43,340 benign; 2,446 with gap &lt; 50 ms)</td><td>0; 0</td><td>0; 0</td></tr>
+<tr><td>Unseen fast-burst stress set (2–50 ms)</td><td>4.2%</td><td>88.4%</td></tr>
+</tbody>
+</table>
+<p>Remaining limit: gaps of about 1 ms or less are still missed. Details: <code>docs/fast_burst_fix.md</code>.</p>
+<p><strong>Verification:</strong> 103 backend and 8 frontend tests pass in CI; <code>verify_release_models</code> reproduces all three release models bit-for-bit; the live deployment flagged 56/60 tunnel queries (normal replay) and 50/50 (fast replay) with 0 false alarms.</p>
 </body>
 </html>
