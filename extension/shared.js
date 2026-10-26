@@ -41,3 +41,13 @@ export function describeIndicators(indicators = {}) {
   if (indicators.unique_subdomains_flag) parts.push('many unique subdomains');
   return parts;
 }
+
+export function getDashboardUrl(apiBase) {
+  if (!apiBase) return 'http://localhost:3000/';
+  const clean = normalizeBase(apiBase);
+  // When running locally on port 8000, open the local React dashboard on port 3000
+  if (clean.includes(':8000') || clean === 'http://127.0.0.1' || clean === 'http://localhost') {
+    return 'http://localhost:3000/';
+  }
+  return `${clean}/`;
+}

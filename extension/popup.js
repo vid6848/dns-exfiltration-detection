@@ -1,4 +1,4 @@
-import { describeIndicators, getSettings } from './shared.js';
+import { describeIndicators, getDashboardUrl, getSettings } from './shared.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -64,9 +64,13 @@ async function render() {
 
 $('dashboard').addEventListener('click', async () => {
   const { apiBase } = await getSettings();
-  if (apiBase) chrome.tabs.create({ url: `${apiBase}/` });
+  chrome.tabs.create({ url: getDashboardUrl(apiBase) });
 });
 $('settings').addEventListener('click', () => chrome.runtime.openOptionsPage());
+$('clearBtn')?.addEventListener('click', async () => {
+  await chrome.storage.local.set({ recent: [], seenIds: [], unread: 0 });
+  await render();
+});
 $('refresh').addEventListener('click', async () => {
   $('status').textContent = 'Checking…';
   await chrome.runtime.sendMessage({ type: 'poll-now' });

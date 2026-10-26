@@ -12,8 +12,9 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -119,6 +120,14 @@ class AppStateStore:
             else:
                 self.total_benign += 1
             return alert_id
+
+    def reset(self):
+        with self.lock:
+            self.total_processed = 0
+            self.total_suspicious = 0
+            self.total_benign = 0
+            self.alerts = []
+            self.capture_extractors.clear()
 
     def get_alerts(self, limit: int = 50) -> List[Dict[str, Any]]:
         with self.lock:
@@ -251,7 +260,11 @@ app.add_middleware(
 
 if not SERVE_DASHBOARD:
     @app.get("/")
-    def root():
+    def root(request: Request):
+        # When accessed from a web browser, redirect straight to the local React dashboard
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            return RedirectResponse(url="http://localhost:3000/")
         return {
             "message": "CyberTrace API is running",
             "status": "ok",
@@ -742,6 +755,17 @@ def get_model_performance():
             "scope",
             "Previously inspected diagnostic development evaluation. Not an independent final test or proof of real-world generalization.",
         ),
+    }
+
+
+@app.post("/reset")
+def reset_server_telemetry():
+    """Resets in-memory statistics, alerts, and capture extractors to zero."""
+    app.state.store.reset()
+    return {
+        "status": "ok",
+        "message": "Telemetry counters, alerts feed, and behavioral windows reset to zero",
+        "statistics": app.state.store.get_statistics(),
     }
 
 # Registered last so every API route above takes precedence over the static files.

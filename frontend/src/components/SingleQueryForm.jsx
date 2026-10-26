@@ -46,10 +46,10 @@ export default function SingleQueryForm({ apiBaseUrl, onPredictionCompleted }) {
   const loadEncodedDomainSample = () => {
     setFormData({
       timestamp: new Date().toISOString(),
-      src_ip: '10.0.4.12',
-      dst_ip: '198.51.100.25',
-      requested_server_name: 'v2-4b6f7267657279-chunk01.tunnel.darkops-c2.net',
-      query_type: 'TXT',
+      src_ip: '10.0.30.186',
+      dst_ip: '10.0.0.2',
+      requested_server_name: 's.2ukez6wzvq7lttlpwff5rkg3.data-relay.info',
+      query_type: 'A',
     });
     setValidationError('');
     setApiError('');

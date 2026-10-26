@@ -31,7 +31,10 @@
     <div class="stat"><b id="suspicious">–</b><span>suspicious</span></div>
     <div class="stat"><b id="rate">–</b><span>suspicious rate</span></div>
   </div>
-  <h2>Recent alerts</h2>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; margin-bottom:4px;">
+    <h2 style="margin:0;">Recent alerts</h2>
+    <button id="clearBtn" style="font-size:11px; padding:2px 8px; background:var(--surface); border:1px solid var(--line); border-radius:4px; color:var(--muted); cursor:pointer;">Clear list</button>
+  </div>
   <div id="list"></div>
   <footer>
     <button id="dashboard" class="primary">Open dashboard</button>

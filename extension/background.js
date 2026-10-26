@@ -3,7 +3,7 @@
 // each new suspicious event. Optionally forwards hostnames this browser contacts to
 // POST /ingest so the server scores them (off by default, see options page).
 
-import { describeIndicators, fetchJson, getSettings } from './shared.js';
+import { describeIndicators, fetchJson, getDashboardUrl, getSettings } from './shared.js';
 
 const POLL_ALARM = 'cybertrace-poll';
 const MAX_SEEN = 1000;
@@ -13,13 +13,18 @@ const BROWSER_FLUSH_MS = 3_000;
 
 // ---------------------------------------------------------------- alert polling
 
+let pollInterval = null;
+
 async function schedulePolling() {
   const { pollSeconds } = await getSettings();
+  const sec = Math.max(5, Number(pollSeconds) || 5);
   await chrome.alarms.clear(POLL_ALARM);
   await chrome.alarms.create(POLL_ALARM, {
-    delayInMinutes: 0.05,
-    periodInMinutes: Math.max(30, Number(pollSeconds) || 30) / 60,
+    delayInMinutes: sec / 60,
+    periodInMinutes: Math.max(0.5, sec / 60),
   });
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(poll, sec * 1000);
 }
 
 async function setBadge(unread, ok) {
@@ -36,7 +41,7 @@ function notifyAlerts(alerts) {
   if (alerts.length === 1) {
     const alert = alerts[0];
     const reasons = describeIndicators(alert.rule_indicators);
-    chrome.notifications.create(alert.alert_id, {
+    chrome.notifications.create(`alert-${alert.alert_id}-${Date.now()}`, {
       type: 'basic',
       iconUrl: 'icons/icon128.png',
       title: `Suspicious DNS: ${alert.risk_label} (${(alert.attack_score * 100).toFixed(1)}%)`,
@@ -48,7 +53,7 @@ function notifyAlerts(alerts) {
   }
   const domains = [...new Set(alerts.map((a) => a.requested_server_name.split('.').slice(-2).join('.')))];
   const hosts = [...new Set(alerts.map((a) => a.src_ip))];
-  chrome.notifications.create(`batch-${alerts[0].alert_id}`, {
+  chrome.notifications.create(`batch-${alerts[0].alert_id}-${Date.now()}`, {
     type: 'basic',
     iconUrl: 'icons/icon128.png',
     title: `${alerts.length} new suspicious DNS events`,
@@ -142,7 +147,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 chrome.notifications.onClicked.addListener(async (notificationId) => {
   const { apiBase } = await getSettings();
-  if (apiBase) chrome.tabs.create({ url: `${apiBase}/` });
+  chrome.tabs.create({ url: getDashboardUrl(apiBase) });
   chrome.notifications.clear(notificationId);
 });
 

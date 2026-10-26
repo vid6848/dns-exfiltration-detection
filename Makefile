@@ -49,7 +49,7 @@ docker:
 	docker run --rm -p 8000:8000 cybertrace
 
 replay:
-	$(PYTHON) -m scripts.dns_sensor --api $(API) --capture-id demo-lab replay data/demo/live_demo_stream.csv
+	$(PYTHON) -m scripts.dns_sensor --api $(API) --capture-id demo-lab replay --speed 6.0 --max-gap 0.5 data/demo/live_demo_stream.csv
 
 replay-fast:
-	$(PYTHON) -m scripts.dns_sensor --api $(API) --capture-id demo-lab-fast replay data/demo/fast_burst_demo_stream.csv
+	$(PYTHON) -m scripts.dns_sensor --api $(API) --capture-id demo-lab-fast replay --speed 6.0 --max-gap 0.5 data/demo/fast_burst_demo_stream.csv
